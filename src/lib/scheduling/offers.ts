@@ -18,7 +18,19 @@ const RACE_CODES = new Set(["SB001", "SB003", "23P01"]);
  * offer expires. The parent's chosen/favorite instructor ranks first; everyone
  * who already declined or let it expire is excluded.
  */
-export async function offerNextInstructor(bookingId: string, now = Date.now()): Promise<OfferOutcome> {
+type BookingContext = {
+  id: string;
+  status: string;
+  instructorId: string | null;
+  zoneId: string;
+  start: number;
+  durationMinutes: number;
+  swimmers: { ageMonths: number | null; level: SwimLevel }[];
+  favoriteInstructorId: string | null;
+  lessonSummary: Record<string, unknown>;
+};
+
+async function loadBookingContext(bookingId: string): Promise<BookingContext> {
   const admin = createAdminClient();
   const { data: booking, error } = await admin
     .from("bookings")
@@ -28,8 +40,6 @@ export async function offerNextInstructor(bookingId: string, now = Date.now()): 
     .eq("id", bookingId)
     .single();
   if (error || !booking) throw new Error(`booking ${bookingId} not found: ${error?.message}`);
-  if (booking.status !== "pending_instructor") return { status: "noop", reason: `booking is ${booking.status}` };
-  if (booking.instructor_id) return { status: "noop", reason: "already offered to an instructor" };
 
   const start = Date.parse(booking.starts_at);
   const durationMinutes = Math.round((Date.parse(booking.ends_at) - start) / 60_000);
@@ -41,40 +51,87 @@ export async function offerNextInstructor(bookingId: string, now = Date.now()): 
   const parent = Array.isArray(booking.parent) ? booking.parent[0] : booking.parent;
   const zone = Array.isArray(booking.zone) ? booking.zone[0] : booking.zone;
 
+  return {
+    id: booking.id,
+    status: booking.status,
+    instructorId: booking.instructor_id,
+    zoneId: booking.zone_id,
+    start,
+    durationMinutes,
+    swimmers,
+    favoriteInstructorId: booking.requested_instructor_id ?? parent?.favorite_instructor_id ?? null,
+    // Ages + levels only. No names until the instructor accepts.
+    lessonSummary: {
+      zone: zone?.code,
+      neighborhood: booking.neighborhood,
+      duration_minutes: durationMinutes,
+      swimmers: swimmers.map((s) => ({ age: s.ageMonths === null ? null : Math.floor(s.ageMonths / 12), swim_level: s.level })),
+    },
+  };
+}
+
+function offerDeadline(start: number, settings: { bookingRequestWindowHours: number; offerMinLeadMinutes: number }, now: number): number | null {
+  const latest = start - settings.offerMinLeadMinutes * 60_000;
+  if (latest <= now) return null;
+  return Math.min(now + settings.bookingRequestWindowHours * 3_600_000, latest);
+}
+
+/**
+ * Paid: open the request to the instructor who has been holding the slot.
+ * Falls back to the offer loop if nobody is assigned.
+ */
+export async function openBookingRequest(bookingId: string, now = Date.now()): Promise<OfferOutcome> {
+  const admin = createAdminClient();
+  const ctx = await loadBookingContext(bookingId);
+  const { data: settings } = await admin.from("platform_settings").select("booking_request_window_hours, offer_min_lead_minutes").single();
+  const deadline = offerDeadline(ctx.start, { bookingRequestWindowHours: settings!.booking_request_window_hours, offerMinLeadMinutes: settings!.offer_min_lead_minutes }, now);
+  const expiresAt = new Date(deadline ?? now + 60 * 60_000).toISOString();
+
+  const { data: offerId, error } = await admin.rpc("start_booking_request", { p_booking_id: bookingId, p_expires_at: expiresAt, p_lesson_summary: ctx.lessonSummary });
+  if (error) {
+    if (error.code === "SB002") return { status: "noop", reason: error.message };
+    throw new Error(`start_booking_request failed: ${error.message}`);
+  }
+  if (!offerId) return offerNextInstructor(bookingId, now);
+  // TODO(phase 4): notify the instructor (email + SMS) of the new request.
+  return { status: "offered", instructorId: ctx.instructorId!, offerId: offerId as string };
+}
+
+/**
+ * Offer a booking request to the best-ranked instructor who hasn't seen it yet.
+ * Called after a decline and by the cron when an offer expires. The parent's
+ * chosen/favorite instructor ranks first; everyone who already declined or let
+ * it expire is excluded.
+ */
+export async function offerNextInstructor(bookingId: string, now = Date.now()): Promise<OfferOutcome> {
+  const admin = createAdminClient();
+  const ctx = await loadBookingContext(bookingId);
+  if (ctx.status !== "pending_instructor") return { status: "noop", reason: `booking is ${ctx.status}` };
+  if (ctx.instructorId) return { status: "noop", reason: "already offered to an instructor" };
+
   const { data: priorOffers } = await admin.from("booking_offers").select("instructor_id").eq("booking_id", bookingId);
   const exclude = (priorOffers ?? []).map((o) => o.instructor_id as string);
 
-  const { scheduler, data } = await schedulerForInstant(start, now);
-  const leadMs = data.settings.offerMinLeadMinutes * 60_000;
-  const latestDeadline = start - leadMs;
-  if (latestDeadline <= now) {
-    return markUnmatched(bookingId, "Lesson is too soon to find another instructor");
-  }
-  const expiresAt = new Date(Math.min(now + data.settings.bookingRequestWindowHours * 3_600_000, latestDeadline)).toISOString();
+  const { scheduler, data } = await schedulerForInstant(ctx.start, now);
+  const deadline = offerDeadline(ctx.start, data.settings, now);
+  if (deadline === null) return markUnmatched(bookingId, "Lesson is too soon to find another instructor");
+  const expiresAt = new Date(deadline).toISOString();
 
   const ranked = scheduler.rankInstructorsForSlot({
-    zoneId: booking.zone_id,
-    durationMinutes,
-    swimmers,
-    start,
+    zoneId: ctx.zoneId,
+    durationMinutes: ctx.durationMinutes,
+    swimmers: ctx.swimmers,
+    start: ctx.start,
     excludeInstructorIds: exclude,
-    favoriteInstructorId: booking.requested_instructor_id ?? parent?.favorite_instructor_id ?? null,
+    favoriteInstructorId: ctx.favoriteInstructorId,
   });
-
-  // Ages + levels only. No names until the instructor accepts.
-  const lessonSummary = {
-    zone: zone?.code,
-    neighborhood: booking.neighborhood,
-    duration_minutes: durationMinutes,
-    swimmers: swimmers.map((s) => ({ age: s.ageMonths === null ? null : Math.floor(s.ageMonths / 12), swim_level: s.level })),
-  };
 
   for (const candidate of ranked) {
     const { data: offerId, error: offerError } = await admin.rpc("assign_booking_offer", {
       p_booking_id: bookingId,
       p_instructor_id: candidate.instructorId,
       p_expires_at: expiresAt,
-      p_lesson_summary: lessonSummary,
+      p_lesson_summary: ctx.lessonSummary,
     });
     if (!offerError) {
       // TODO(phase 4): notify the instructor (email + SMS) of the new request.

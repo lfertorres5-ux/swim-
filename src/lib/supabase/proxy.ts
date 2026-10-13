@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED_PREFIXES = ["/parent", "/instructor", "/admin", "/onboarding", "/dashboard"];
+const PROTECTED_PREFIXES = ["/parent", "/instructor", "/admin", "/onboarding", "/dashboard", "/book", "/dev"];
 
 /**
  * Refreshes the Supabase session cookie on every request and performs an

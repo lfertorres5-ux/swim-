@@ -151,10 +151,38 @@ export class Scheduler {
 
     const sortOrder = new Map(this.data.instructors.map((i) => [i.id, i.sortOrder]));
     return this.eligibleInstructors(req)
-      .filter((i) => this.availability.windows(i.id, date).some(([ws, we]) => ws <= t && t + req.durationMinutes <= we))
-      .filter((i) => !this.conflicts(i.id, req.start, end, zone.id))
+      .filter((i) => this.isFree(i.id, date, t, req.durationMinutes, zone.id))
       .map((i) => this.score(i, req, zone.id, date, req.start, end))
       .sort((a, b) => b.score - a.score || sortOrder.get(a.instructorId)! - sortOrder.get(b.instructorId)!);
+  }
+
+  /**
+   * Slots for a weekly series: the first lesson falls in [fromDate, toDate] and
+   * the same instructor must be free at the same local time for every week of
+   * the term. Candidates who can't make every week are dropped. The scheduler's
+   * data must cover the whole term (toDate + 7 × (weeks − 1)).
+   */
+  findRecurringSlots(req: SlotRequest, weeks: number): SlotResult {
+    const first = this.findSlots(req);
+    const slots = first.slots
+      .map((slot) => {
+        const candidates = slot.candidates.filter((c) =>
+          Array.from({ length: weeks - 1 }, (_, k) => addDays(slot.date, 7 * (k + 1))).every((date) =>
+            this.isFree(c.instructorId, date, slot.startMinutes, req.durationMinutes, req.zoneId),
+          ),
+        );
+        return candidates.length ? { ...slot, candidates, isNeighborhoodSlot: candidates[0].isNeighborhoodSlot } : null;
+      })
+      .filter((s): s is Slot => s !== null);
+    return { slots, suggested: pickSuggested(slots), eligibleInstructorIds: first.eligibleInstructorIds };
+  }
+
+  /** Inside the instructor's hours on `date` and clear of every lesson + travel buffer. */
+  isFree(instructorId: string, date: string, startMinutes: number, durationMinutes: number, zoneId: string): boolean {
+    const inHours = this.availability.windows(instructorId, date).some(([ws, we]) => ws <= startMinutes && startMinutes + durationMinutes <= we);
+    if (!inHours) return false;
+    const start = laWallTimeToUtc(date, startMinutes);
+    return !this.conflicts(instructorId, start, start + durationMinutes * MINUTE, zoneId);
   }
 
   // ---------------------------------------------------------------------------

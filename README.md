@@ -16,8 +16,8 @@ Stripe · Twilio Proxy · Resend · Google Maps Places.
 | --- | --- | --- |
 | 1 | Schema, RLS, auth (magic link + Google), instructor terms gate, seed, RLS test suite | ✅ done |
 | 2 | Instructor profile + availability builder, scheduling engine, booking requests with auto-offer, San Diego County-only service area | ✅ done |
-| 3 | Parent booking flow, pricing engine, Stripe Checkout / Portal, landing page | ⏳ next |
-| 4 | Masked comms (Twilio Proxy), chat filter, lesson notes, notifications | — |
+| 3 | Landing page + service-area map, booking wizard, pricing engine, packages & weekly series, Stripe Checkout / Portal / webhooks, parent account (cancel, reschedule, notes, receipts, favorite) | ✅ done |
+| 4 | Masked comms (Twilio Proxy), chat filter, lesson notes, notifications | ⏳ next |
 | 5 | Admin console, sub board, day-pass inquiries | — |
 | 6 | Google Calendar / iCal, outbound webhooks, CSV + import adapters | — |
 
@@ -31,6 +31,11 @@ src/
     parent/ instructor/ admin/   role areas (each layout enforces its role)
     instructor/profile, /availability, /requests   profile (first name, bio, photo), hours & zones, accept/decline
     admin/scheduling      run any request through the engine; rankings explained
+    book/                 6-step booking wizard (address → swimmers → instructor → plan → time → pay)
+    parent/lessons/[id]   lesson detail: cancel (refund preview), reschedule, notes, favorite
+    parent/progress, /receipts   progress notes; payments + Stripe Customer Portal
+    api/webhooks/stripe   signed Stripe events → fulfillment / release / refund sync
+    dev/checkout          simulated checkout for keyless local dev (never in production)
     api/availability      slot search for the booking calendar
     api/cron/scheduling   expire offers & holds, auto-offer onward (Vercel Cron)
   lib/
@@ -38,7 +43,10 @@ src/
     supabase/             server (RLS), browser, proxy (session refresh), admin (service role)
     time.ts               America/Los_Angeles helpers (wall clock ⇄ UTC, DST-safe)
     scheduling/           engine (pure), snapshot loader, offer loop — see docs/scheduling.md
-    geo/                  San Diego County outline, ZIP rules, zone detection
+    geo/                  San Diego County outline, ZIP rules, zone detection, server geocoding
+    pricing/              pricing engine (pure) + catalog / promo lookup
+    booking/              checkout, fulfillment, cancel/reschedule, address verification, policy
+    payments/             Stripe gateway (+ dev gateway), webhook handling
   content/instructor-terms.ts   versioned instructor agreement text
   proxy.ts                session refresh + optimistic auth redirect (Next 16 "proxy")
 supabase/
@@ -50,7 +58,7 @@ tests/rls/                DB suite (Vitest + pg) — runs as real `anon`/`authen
 tests/api/                API suite — real PostgREST + supabase-js, exercising the app's server modules
 scripts/db/               test DB builder + Supabase shim for vanilla Postgres
 scripts/api-test/         downloads PostgREST, mounts it at /rest/v1, runs tests/api
-docs/                     security model, scheduling, deployment
+docs/                     security model, scheduling, payments, deployment
 ```
 
 ## Local setup
@@ -66,7 +74,9 @@ supabase db reset         # applies supabase/migrations + supabase/seed.sql
 ```
 
 Copy the `API URL`, `anon key` and `service_role key` printed by `supabase start` into `.env.local`
-(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`), then:
+(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`). To try booking
+without Stripe, also set `PAYMENTS_DEV_MODE=true` (checkout becomes a simulated page). Without Google Maps keys
+the address step falls back to manual entry and ZIP-based zone checks. Then:
 
 ```bash
 npm run dev               # http://localhost:3000
@@ -151,10 +161,18 @@ What the database suite proves (75 tests), among others:
   by the database;
 - accept/decline/expiry of booking requests, and the service-role-only automation RPCs.
 
-Unit tests (72) cover the scheduling engine (windows, overrides, DST, buffers, qualification, neighborhood
-slots, ranking), San Diego County geometry, and time/phone helpers. The API suite (7) runs the real
-server modules through PostgREST: availability search, a request auto-offered down the ranked list until
-nobody is left, acceptance, the maintenance cron, and the exact queries the pages run.
+Unit tests (96) cover the scheduling engine (windows, overrides, DST, buffers, qualification, neighborhood
+slots, ranking, weekly series), the pricing engine (every spec price, group, zone, package, series,
+neighborhood and promo rule), the cancellation policy, Stripe webhook signatures, San Diego County geometry,
+and time/phone helpers. The API suite (23) runs the real server modules through PostgREST:
+- availability search and the auto-offer loop (offered down the ranked list until nobody is left), plus
+  acceptance and the maintenance cron;
+- checkout holds at server-computed prices, and a held slot can't be double-booked;
+- fulfillment is idempotent, and a failed payment update is raised, never treated as already done;
+- 4-pack credits, weekly series, and promo codes;
+- on-time and late cancellations and their refunds, and rescheduling with the same instructor;
+- Stripe event de-duplication and expiry release;
+- the exact queries the pages run under RLS.
 
 ## Service area: San Diego County only
 

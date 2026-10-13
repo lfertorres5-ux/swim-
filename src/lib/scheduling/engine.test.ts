@@ -334,3 +334,27 @@ describe("ageInMonths", () => {
     expect(ageInMonths("2021-10-20", "2026-10-19")).toBe(59);
   });
 });
+
+describe("weekly series", () => {
+  const d = data({
+    instructors: [instructor("maya"), instructor("jordan", { sortOrder: 2 })],
+    rules: ["maya", "jordan"].map((id) => ({ instructorId: id, weekday: 1, startTime: "09:00", endTime: "11:00", effectiveFrom: "2026-01-01", effectiveUntil: null })),
+    // Maya is booked at 09:00 in week 3; Jordan is off entirely in week 2.
+    occupied: [lesson("maya", ZONE_A, "2026-11-02", "09:00", "10:00")],
+    overrides: [{ instructorId: "jordan", date: "2026-10-26", kind: "blackout", startTime: null, endTime: null }],
+  });
+
+  it("only keeps instructors free at the same time every week of the term", () => {
+    const s = new Scheduler(d, NOW);
+    const four = s.findRecurringSlots(req({ fromDate: "2026-10-19", toDate: "2026-10-19" }), 4);
+    const nine = four.slots.find((x) => formatTimeOfDay(x.startMinutes) === "09:00");
+    // Maya is busy 11/2 at 09:00 and Jordan is off 10/26 → nobody can do Mondays 09:00 for 4 weeks.
+    expect(nine).toBeUndefined();
+    const ten = four.slots.find((x) => formatTimeOfDay(x.startMinutes) === "10:00");
+    // 10:00 is 0 min after Maya's 09:00–10:00 on 11/2 → inside the 30-min buffer, so still nobody.
+    expect(ten).toBeUndefined();
+
+    const two = s.findRecurringSlots(req({ fromDate: "2026-10-19", toDate: "2026-10-19" }), 2);
+    expect(two.slots.find((x) => formatTimeOfDay(x.startMinutes) === "09:00")!.candidates.map((c) => c.instructorId)).toEqual(["maya"]);
+  });
+});

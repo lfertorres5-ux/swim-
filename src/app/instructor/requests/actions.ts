@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function respondToRequest(formData: FormData) {
   await requireRole("instructor");
-  const offerId = z.uuid().parse(formData.get("offerId"));
+  const offerId = z.guid().parse(formData.get("offerId"));
   const accept = formData.get("decision") === "accept";
   const reason = String(formData.get("reason") ?? "").slice(0, 500) || null;
 

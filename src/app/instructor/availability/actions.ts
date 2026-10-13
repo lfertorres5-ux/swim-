@@ -44,7 +44,7 @@ export async function addWeeklyHours(formData: FormData) {
 
 export async function removeWeeklyHours(formData: FormData) {
   await requireRole("instructor");
-  const id = z.uuid().parse(formData.get("id"));
+  const id = z.guid().parse(formData.get("id"));
   const supabase = await createClient();
   // RLS restricts the delete to the instructor's own rows.
   await supabase.from("availability_rules").delete().eq("id", id);
@@ -91,7 +91,7 @@ export async function addDateOverride(formData: FormData) {
 
 export async function removeDateOverride(formData: FormData) {
   await requireRole("instructor");
-  const id = z.uuid().parse(formData.get("id"));
+  const id = z.guid().parse(formData.get("id"));
   const supabase = await createClient();
   await supabase.from("availability_overrides").delete().eq("id", id);
   done();
@@ -99,7 +99,7 @@ export async function removeDateOverride(formData: FormData) {
 
 export async function saveZones(formData: FormData) {
   const user = await requireRole("instructor");
-  const selected = z.array(z.uuid()).parse(formData.getAll("zoneId"));
+  const selected = z.array(z.guid()).parse(formData.getAll("zoneId"));
   const supabase = await createClient();
   const { data: current } = await supabase.from("instructor_zones").select("zone_id").eq("instructor_id", user.id);
   const have = new Set((current ?? []).map((z) => z.zone_id as string));

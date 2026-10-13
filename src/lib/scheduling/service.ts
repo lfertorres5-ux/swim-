@@ -23,9 +23,17 @@ export async function getAvailability(req: SlotRequest, now = Date.now()): Promi
   return new Scheduler(data, now).findSlots(req);
 }
 
-/** Snapshot covering the day of `start` (plus neighbors, for buffers across midnight). */
-export async function schedulerForInstant(start: number, now = Date.now()) {
+/**
+ * Scheduler covering the day of `start` (plus neighbors, for buffers across
+ * midnight) and, for weekly series, the following `weeks − 1` weeks.
+ * `excludeBookingIds` removes lessons being moved (reschedule) from the busy set.
+ */
+export async function schedulerForInstant(start: number, now = Date.now(), opts: { weeks?: number; excludeBookingIds?: string[] } = {}) {
   const date = laDateString(new Date(start));
-  const data = await loadSchedulingData(addDays(date, -1), addDays(date, 1));
+  const data = await loadSchedulingData(addDays(date, -1), addDays(date, 7 * ((opts.weeks ?? 1) - 1) + 1));
+  if (opts.excludeBookingIds?.length) {
+    const skip = new Set(opts.excludeBookingIds);
+    data.occupied = data.occupied.filter((b) => !b.id || !skip.has(b.id));
+  }
   return { scheduler: new Scheduler(data, now), data };
 }

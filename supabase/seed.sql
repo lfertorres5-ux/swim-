@@ -337,6 +337,10 @@ begin
     (emily,  b8,   null,       series_emily, 5850,  0,    'succeeded', 'Weekly lesson (recurring)', 'pi_seed_b8'),
     (marcus, b9,   null,       null,         7500,  0,    'succeeded', '30-min lesson', 'pi_seed_b9');
 
+  -- Link each lesson to the payment that paid for it (refunds look this up).
+  update public.bookings b set payment_id = p.id
+  from public.payments p where p.booking_id = b.id;
+
   -- Instructor pay
   insert into public.instructor_payouts (id, instructor_id, amount_cents, period_start, period_end, paid_at, method, reference)
   values (payout_maya, maya, 2000, today - 14, today - 1, now() - interval '1 day', 'direct_deposit', 'ACH-SEED-0001');

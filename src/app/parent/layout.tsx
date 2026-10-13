@@ -7,7 +7,15 @@ export default async function ParentLayout({ children }: LayoutProps<"/parent">)
   if (!user.onboardedAt) redirect("/onboarding");
   return (
     <>
-      <AppHeader user={user} nav={[{ href: "/parent", label: "My lessons" }]} />
+      <AppHeader
+        user={user}
+        nav={[
+          { href: "/parent", label: "My lessons" },
+          { href: "/book", label: "Book" },
+          { href: "/parent/progress", label: "Progress" },
+          { href: "/parent/receipts", label: "Receipts" },
+        ]}
+      />
       <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</div>
     </>
   );

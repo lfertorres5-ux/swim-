@@ -10,12 +10,12 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const hhmm = z.string().regex(/^\d{2}:\d{2}$/);
 
 const bodySchema = z.object({
-  zoneId: z.uuid(),
+  zoneId: z.guid(),
   durationMinutes: z.number().int().positive().max(240),
   swimmers: z.array(z.object({ ageMonths: z.number().int().min(0).max(1200).nullable(), level: z.enum(SWIM_LEVELS) })).min(1).max(10),
   fromDate: isoDate,
   toDate: isoDate,
-  instructorId: z.uuid().nullable().optional(),
+  instructorId: z.guid().nullable().optional(),
   preferences: z.object({ weekdays: z.array(z.number().int().min(0).max(6)).optional(), windows: z.array(z.object({ start: hhmm, end: hhmm })).optional() }).optional(),
   onlyPreferred: z.boolean().optional(),
 });

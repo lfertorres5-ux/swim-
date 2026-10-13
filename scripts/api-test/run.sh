@@ -17,6 +17,13 @@ if [ ! -x "$BIN" ]; then
   mv "$CACHE/postgrest" "$BIN"
 fi
 
+for port in $PGRST_PORT $PROXY_PORT; do
+  if (exec 3<>/dev/tcp/127.0.0.1/$port) 2>/dev/null; then
+    echo "Port $port is already in use — stop the other PostgREST/proxy first (tests would hit the wrong database)." >&2
+    exit 1
+  fi
+done
+
 node scripts/db/prepare-test-db.mjs
 psql "$TEST_DATABASE_URL" -q -v ON_ERROR_STOP=1 <<'SQL'
 do $$ begin
