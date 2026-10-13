@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth";
+import { getInstructorContext } from "@/lib/instructor-context";
 import { createClient } from "@/lib/supabase/server";
 import { formatTime, laDateString } from "@/lib/time";
 
@@ -23,7 +23,8 @@ type Lesson = {
  * is present only inside the day-of reveal window.
  */
 export default async function InstructorToday() {
-  await requireRole("instructor");
+  const ctx = await getInstructorContext();
+  if (!ctx.isActive) return <p className="card text-slate-600">Lessons will appear here once your account is activated.</p>;
   const supabase = await createClient();
   const today = laDateString();
   const { data, error } = await supabase.rpc("instructor_lessons", { p_from: today, p_to: today });

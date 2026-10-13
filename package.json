@@ -12,7 +12,8 @@
     "test:rls": "node scripts/db/prepare-test-db.mjs && vitest run tests/rls",
     "test:rls:supabase": "vitest run tests/rls",
     "db:reset": "supabase db reset",
-    "db:types": "supabase gen types typescript --local > src/lib/database.types.ts"
+    "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
+    "test:api": "bash scripts/api-test/run.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

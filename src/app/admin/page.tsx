@@ -9,17 +9,21 @@ export default async function AdminHome() {
   const certCutoff = addDays(today, 30);
 
   const count = (q: PromiseLike<{ count: number | null }>) => q.then((r) => r.count ?? 0);
-  const [upcoming, instructors, openFlags, newInquiries, openShifts, expiring] = await Promise.all([
+  const [upcoming, instructors, openFlags, newInquiries, openShifts, expiring, attention, awaiting] = await Promise.all([
     count(supabase.from("bookings").select("id", { count: "exact", head: true }).eq("status", "confirmed").gte("starts_at", new Date().toISOString())),
     count(supabase.from("instructors").select("id", { count: "exact", head: true }).eq("is_active", true)),
     count(supabase.from("flagged_messages").select("id", { count: "exact", head: true }).eq("status", "open")),
     count(supabase.from("day_pass_inquiries").select("id", { count: "exact", head: true }).eq("status", "new")),
     count(supabase.from("open_shifts").select("id", { count: "exact", head: true }).in("status", ["open", "pending_approval"])),
     count(supabase.from("instructor_certifications").select("id", { count: "exact", head: true }).lte("expires_on", certCutoff)),
+    count(supabase.from("bookings").select("id", { count: "exact", head: true }).eq("needs_attention", true)),
+    count(supabase.from("bookings").select("id", { count: "exact", head: true }).eq("status", "pending_instructor")),
   ]);
 
   const tiles = [
     { label: "Upcoming confirmed lessons", value: upcoming },
+    { label: "Requests awaiting an instructor", value: awaiting },
+    { label: "Bookings needing attention (no instructor matched)", value: attention, alert: attention > 0 },
     { label: "Active instructors", value: instructors },
     { label: "Open sub-board shifts", value: openShifts },
     { label: "Flagged messages to review", value: openFlags, alert: openFlags > 0 },

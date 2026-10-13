@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Illustrated portrait of Maya">
+  <rect width="200" height="200" fill="#bae6fd"/>
+  <path d="M0 170c20-14 40-14 60 0s40 14 60 0 40-14 60 0 20 7 20 7v23H0z" fill="#ffffff" opacity=".45"/>
+  <path d="M58 92c0-30 18-50 42-50s42 20 42 50v58H58z" fill="#2b1a10"/>
+  <path d="M40 200c4-36 28-56 60-56s56 20 60 56z" fill="#0284c7"/>
+  <rect x="88" y="120" width="24" height="28" rx="10" fill="#c68642"/>
+  <ellipse cx="100" cy="96" rx="34" ry="38" fill="#c68642"/>
+  <path d="M66 88c4-22 18-34 34-34s30 12 34 34c-12-10-26-14-42-12-10 1-18 5-26 12z" fill="#2b1a10"/>
+  <circle cx="88" cy="98" r="3.5" fill="#1f2937"/>
+  <circle cx="112" cy="98" r="3.5" fill="#1f2937"/>
+  <path d="M90 114c6 6 14 6 20 0" stroke="#1f2937" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>

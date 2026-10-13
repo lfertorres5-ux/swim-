@@ -52,7 +52,7 @@ export async function createFixtures() {
     await db.query("begin");
 
     await db.query(
-      `insert into public.zones (id, code, name, postal_codes) values ($1, $2, 'RLS Test Zone', '{99999}')`,
+      `insert into public.zones (id, code, name, postal_codes) values ($1, $2, 'RLS Test Zone', '{92091}')`,
       [f.zoneId, f.zoneCode],
     );
 
@@ -72,7 +72,12 @@ export async function createFixtures() {
     await mkUser(f.parent1, PARENT1_CONTACT.email, "Paula", PARENT1_CONTACT.lastName, "parent", PARENT1_CONTACT.phone);
     await mkUser(f.parent2, `p2-${f.parent2.slice(0, 8)}@rls.test`, "Quinn", "Quartz", "parent", "+16195550902");
 
-    await db.query(`update public.instructors set is_active = true where id = any($1)`, [
+    await db.query(
+      `update public.instructors
+       set is_active = true, photo_path = id::text || '/photo.jpg',
+           bio = 'Certified instructor who loves helping kids feel safe and confident in the water.'
+       where id = any($1)`,
+      [
       [f.instructorA, f.instructorB, f.pendingInstr],
     ]);
     await db.query(

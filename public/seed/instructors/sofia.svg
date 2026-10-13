@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Illustrated portrait of Sofia">
+  <rect width="200" height="200" fill="#fde68a"/>
+  <path d="M0 170c20-14 40-14 60 0s40 14 60 0 40-14 60 0 20 7 20 7v23H0z" fill="#ffffff" opacity=".45"/>
+  <circle cx="100" cy="40" r="16" fill="#5b3a1e"/>
+  <path d="M40 200c4-36 28-56 60-56s56 20 60 56z" fill="#f59e0b"/>
+  <rect x="88" y="120" width="24" height="28" rx="10" fill="#e0ac69"/>
+  <ellipse cx="100" cy="96" rx="34" ry="38" fill="#e0ac69"/>
+  <path d="M64 92c0-26 16-42 36-42s36 16 36 42c-10-12-22-18-36-18s-26 6-36 18z" fill="#5b3a1e"/>
+  <circle cx="88" cy="98" r="3.5" fill="#1f2937"/>
+  <circle cx="112" cy="98" r="3.5" fill="#1f2937"/>
+  <path d="M90 114c6 6 14 6 20 0" stroke="#1f2937" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>

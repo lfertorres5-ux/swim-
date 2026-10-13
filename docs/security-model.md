@@ -29,6 +29,7 @@ below is enforced by **Postgres itself**, and each one is covered by `tests/rls/
 | Instructor pay rate, iCal token | `instructor_private` | that instructor, admin. Nobody can edit their own rate |
 | Instructor earnings / payouts | `instructor_earnings`, `instructor_payouts` | that instructor, admin |
 | Lesson time, zone, neighborhood | `bookings` | parent, **assigned** instructor, admin. No PII and no prices on this table |
+| Instructor public profile (first name, bio, photo) | `instructors` | everyone, for active instructors. **First name only**, never a last name; the format allows letters, spaces, hyphens and apostrophes, so it can't carry a phone number, email or handle |
 | Pre-acceptance request / sub-board details | `booking_offers.lesson_summary`, `open_shifts.lesson_summary` | ages + levels + zone + time only, no names |
 | Flagged-message originals | `flagged_messages` | admin |
 | Audit trail | `audit_log` | admin (append-only, enforced by trigger even for the DB owner) |
@@ -46,6 +47,19 @@ Anything an instructor must not see sits in a table they have no policy on.
 
 Publishing new terms (bumping the version) immediately cuts off every instructor's access to client data
 until they accept again. Reassigning a booking (a sub) moves access to the new instructor instantly.
+
+## Instructor profiles
+
+An instructor can't be **active** (shown to families, offered bookings) unless they have a first name, a bio
+of at least 40 characters, and a photo. The photo must be their own upload in `instructor-photos/<their
+id>/…` or a bundled seed image. Active instructors can't blank these fields. All of this is enforced by CHECK
+constraints. The bio is free text and will be screened by the Phase 4 contact filter.
+
+## Service area
+
+Every zone ZIP, home address and lesson address must be a San Diego County ZIP (919xx–921xx), and every zone
+vertex and stored coordinate must fall inside the county outline (`private.within_sd_county`, identical to
+`SD_COUNTY_OUTLINE` in the app; a test keeps the two in sync).
 
 ## Roles can't be self-assigned
 

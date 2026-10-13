@@ -12,17 +12,17 @@ export default async function ParentHome() {
   const [{ data: upcoming }, { data: children }, { data: parent }] = await Promise.all([
     supabase
       .from("bookings")
-      .select("id, starts_at, ends_at, status, neighborhood, instructor:instructors!bookings_instructor_id_fkey(display_name)")
+      .select("id, starts_at, ends_at, status, neighborhood, instructor:instructors!bookings_instructor_id_fkey(first_name)")
       .eq("parent_id", user.id)
       .gte("ends_at", new Date().toISOString())
       .in("status", ["pending_payment", "pending_instructor", "confirmed"])
       .order("starts_at")
       .limit(20),
     supabase.from("children").select("id, first_name, swim_level").eq("is_active", true).order("first_name"),
-    supabase.from("parents").select("favorite:instructors!parents_favorite_instructor_id_fkey(display_name)").eq("id", user.id).maybeSingle(),
+    supabase.from("parents").select("favorite:instructors!parents_favorite_instructor_id_fkey(first_name)").eq("id", user.id).maybeSingle(),
   ]);
 
-  const favorite = one(parent?.favorite)?.display_name;
+  const favorite = one(parent?.favorite)?.first_name;
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -36,7 +36,7 @@ export default async function ParentHome() {
                 <div>
                   <p className="font-medium">{formatDateTime(b.starts_at)}</p>
                   <p className="text-sm text-slate-500">
-                    with {one(b.instructor)?.display_name ?? "an instructor (being matched)"}
+                    with {one(b.instructor)?.first_name ?? "an instructor (being matched)"}
                   </p>
                 </div>
                 <span className="badge bg-sky-50 text-sky-700">{b.status.replace("_", " ")}</span>

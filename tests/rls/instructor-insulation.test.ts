@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { asOwner, asUser, expectSqlError, NO_DATA_FOUND, PERMISSION_DENIED } from "./helpers";
+import { asOwner, asUser, CHECK_VIOLATION, expectSqlError, NO_DATA_FOUND, PERMISSION_DENIED } from "./helpers";
 import { createFixtures, destroyFixtures, PARENT1_CONTACT, type Fixtures } from "./fixtures";
 
 let f: Fixtures;
@@ -90,14 +90,22 @@ describe("instructor cannot read parent contact fields", () => {
     });
   });
 
-  it("cannot change their own role, activation status, display name or pay rate", async () => {
+  it("cannot change their own role, activation status or pay rate, or put contact info in their profile", async () => {
     await asUser(f.instructorA, async (db) => {
       await expectSqlError(db, "update public.users set role = 'admin' where id = $1", [f.instructorA], PERMISSION_DENIED);
       await expectSqlError(db, "update public.instructors set is_active = true where id = $1", [f.instructorA], PERMISSION_DENIED);
-      // Display name is shown to parents, so it can't carry contact info.
-      await expectSqlError(db, "update public.instructors set display_name = 'Ivy 619-555-0101' where id = $1", [f.instructorA], PERMISSION_DENIED);
+      // First name is shown to parents, so its format can't carry contact info.
+      for (const smuggled of ["Ivy 619-555-0101", "ivy@mail.com", "@ivyswims", "Ivy.swims"]) {
+        await expectSqlError(db, "update public.instructors set first_name = $2 where id = $1", [f.instructorA, smuggled], CHECK_VIOLATION);
+      }
+      expect((await db.query("update public.instructors set first_name = 'Ivy-Rose' where id = $1", [f.instructorA])).rowCount).toBe(1);
+      // An active instructor can't blank out their bio or photo.
+      await expectSqlError(db, "update public.instructors set bio = null where id = $1", [f.instructorA], CHECK_VIOLATION);
+      await expectSqlError(db, "update public.instructors set photo_path = null where id = $1", [f.instructorA], CHECK_VIOLATION);
+      // …or point the photo at someone else's upload.
+      await expectSqlError(db, "update public.instructors set photo_path = $2 where id = $1", [f.instructorA, `${f.instructorB}/photo.jpg`], CHECK_VIOLATION);
       // Profile fields that are self-editable still work.
-      expect((await db.query("update public.instructors set bio = 'Hi!' where id = $1", [f.instructorA])).rowCount).toBe(1);
+      expect((await db.query("update public.instructors set bio = 'Patient, playful lessons for nervous first-time swimmers.' where id = $1", [f.instructorA])).rowCount).toBe(1);
       await expectSqlError(
         db,
         "update public.instructor_private set pay_rate_cents_per_hour = 99999 where instructor_id = $1",

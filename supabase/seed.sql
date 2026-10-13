@@ -46,7 +46,8 @@ update public.platform_settings set
   support_email = 'hello@example.com';
 
 -- -----------------------------------------------------------------------------
--- Zones (boundaries are approximate; refine in Admin → Zones)
+-- Zones — San Diego County only (ZIPs 919xx–921xx; polygons inside the county).
+-- Boundaries are approximate; refine in Admin → Zones.
 -- Detection order: exact postal code match first, then polygon by sort_order.
 -- -----------------------------------------------------------------------------
 insert into public.zones (id, code, name, description, travel_fee_cents, min_booking_minutes, postal_codes, neighborhoods, boundary, map_color, sort_order) values
@@ -66,7 +67,7 @@ insert into public.zones (id, code, name, description, travel_fee_cents, min_boo
    'Oceanside, Vista, San Marcos, Escondido, Poway, Scripps Ranch, Pacific Beach, Point Loma, Clairemont', 2000, 60,
    array['92054','92056','92057','92058','92081','92083','92084','92069','92078','92025','92026','92027','92029','92064','92131','92109','92106','92107','92117'],
    array['Oceanside','Vista','San Marcos','Escondido','Poway','Scripps Ranch','Pacific Beach','Point Loma','Clairemont'],
-   '{"type":"Polygon","coordinates":[[[-117.420,33.280],[-116.980,33.280],[-116.950,32.850],[-117.100,32.700],[-117.270,32.700],[-117.420,33.280]]]}',
+   '{"type":"Polygon","coordinates":[[[-117.420,33.280],[-116.980,33.280],[-116.950,32.850],[-117.100,32.700],[-117.250,32.700],[-117.420,33.280]]]}',
    '#f59e0b', 3)
 on conflict (id) do nothing;
 
@@ -178,28 +179,28 @@ begin
   perform pg_temp.seed_user(tyler,  'tyler@example.com',  'Tyler',  'Brooks',  'instructor', '+16195550114');
 
   update public.instructors set
-    display_name = 'Maya R.',
+    first_name = 'Maya', photo_path = '/seed/instructors/maya.svg',
     bio = 'Former Encinitas YMCA swim lead. I specialize in first-time swimmers and kids who are nervous around water — lots of games, zero pressure.',
     specialties = array['toddlers', 'fearful_swimmers', 'water_safety'],
     min_child_age_months = 6, years_experience = 9, languages = array['English', 'Spanish'],
     is_active = true, sort_order = 1
   where id = maya;
   update public.instructors set
-    display_name = 'Jordan L.',
+    first_name = 'Jordan', photo_path = '/seed/instructors/jordan.svg',
     bio = 'USA Swimming certified coach and former D1 swimmer. Stroke refinement, flip turns, and getting kids ready for swim team tryouts.',
     specialties = array['stroke_technique', 'swim_team_prep'],
     levels_taught = array['beginner', 'advanced_beginner', 'intermediate', 'advanced', 'stroke_technique']::public.swim_level[],
     min_child_age_months = 48, years_experience = 12, is_active = true, sort_order = 2
   where id = jordan;
   update public.instructors set
-    display_name = 'Sofia A.',
+    first_name = 'Sofia', photo_path = '/seed/instructors/sofia.svg',
     bio = 'Infant & toddler aquatics specialist with experience teaching children with sensory and developmental differences. Bilingual lessons available.',
     specialties = array['toddlers', 'infant_survival', 'special_needs'],
     min_child_age_months = 6, years_experience = 7, languages = array['English', 'Spanish'],
     is_active = true, sort_order = 3
   where id = sofia;
   update public.instructors set
-    display_name = 'Tyler B.',
+    first_name = 'Tyler', photo_path = '/seed/instructors/tyler.svg',
     bio = 'Ocean lifeguard turned swim instructor. Patient with fearful swimmers of every age, including tweens who want to catch up with friends.',
     specialties = array['fearful_swimmers', 'water_safety', 'older_beginners'],
     min_child_age_months = 36, years_experience = 6, is_active = true, sort_order = 4

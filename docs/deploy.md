@@ -61,9 +61,9 @@ before seeing any client data, and whom an admin must then activate.
 
 | Phase | Extra setup |
 | --- | --- |
+| 2 | `CRON_SECRET` (any long random string). `vercel.json` runs `/api/cron/scheduling` every 10 minutes, which expires booking requests and re-offers them. **Vercel Hobby only allows daily crons**, so use Pro, or call the endpoint from an external scheduler with `Authorization: Bearer $CRON_SECRET` |
 | 3 | Stripe keys; webhook endpoint `https://your-domain.com/api/webhooks/stripe`; Customer Portal enabled; Google Maps keys (browser key restricted by referrer) |
 | 4 | Twilio Proxy service + Messaging service; Resend API key + verified domain; `ADMIN_ALERT_EMAIL` |
-| 2–6 | `CRON_SECRET`, with Vercel Cron jobs declared in `vercel.json` (offer expiry, reminders, webhook retries) |
 | 6 | Google Calendar OAuth client; `TOKEN_ENCRYPTION_KEY` |
 
 ## 5. Ongoing migrations

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { asAnon, asOwner, asUser, EXCLUSION_VIOLATION, expectSqlError, PERMISSION_DENIED } from "./helpers";
+import { asAnon, asOwner, asUser, EXCLUSION_VIOLATION, expectSqlError, PERMISSION_DENIED, TRAVEL_BUFFER_CONFLICT } from "./helpers";
 import { createFixtures, destroyFixtures, type Fixtures } from "./fixtures";
 
 let f: Fixtures;
@@ -121,8 +121,8 @@ describe("parents are isolated from each other", () => {
       expect((await db.query("select * from public.instructor_private")).rowCount).toBe(0);
       expect((await db.query("select * from public.instructor_earnings")).rowCount).toBe(0);
       // Public profile is fine.
-      const profile = await db.query("select display_name from public.instructors where id = $1", [f.instructorA]);
-      expect(profile.rows[0].display_name).toBe("Ivy A.");
+      const profile = await db.query("select first_name, bio, photo_path from public.instructors where id = $1", [f.instructorA]);
+      expect(profile.rows[0].first_name).toBe("Ivy");
     });
   });
 
@@ -205,19 +205,32 @@ describe("double-booking prevention (exclusion constraint)", () => {
     await asOwner(async (db) => {
       await db.query("begin");
       try {
+        const overlap = `insert into public.bookings (parent_id, instructor_id, zone_id, starts_at, ends_at, status, buffer_override)
+           values ($1, $2, $3, now() + interval '3 days 30 minutes', now() + interval '3 days 90 minutes', 'pending_payment', $4)`;
+        // The travel-buffer trigger rejects it first…
+        await expectSqlError(db, overlap, [f.parent2, f.instructorA, f.zoneId, false], TRAVEL_BUFFER_CONFLICT);
+        // …and the exclusion constraint is the hard backstop even when the buffer is overridden.
+        await expectSqlError(db, overlap, [f.parent2, f.instructorA, f.zoneId, true], EXCLUSION_VIOLATION);
+        // Back-to-back with no travel time is rejected by the buffer trigger…
         await expectSqlError(
           db,
           `insert into public.bookings (parent_id, instructor_id, zone_id, starts_at, ends_at, status)
-           values ($1, $2, $3, now() + interval '3 days 30 minutes', now() + interval '3 days 90 minutes', 'pending_payment')`,
-          [f.parent2, f.instructorA, f.zoneId],
-          EXCLUSION_VIOLATION,
-        );
-        // Back-to-back is fine ([) ranges), as is overlapping a cancelled lesson.
-        await db.query(
-          `insert into public.bookings (parent_id, instructor_id, zone_id, starts_at, ends_at, status)
            select $1, $2, $3, b.ends_at, b.ends_at + interval '30 minutes', 'confirmed' from public.bookings b where b.id = $4`,
           [f.parent2, f.instructorA, f.zoneId, f.bookings.aFuture],
+          TRAVEL_BUFFER_CONFLICT,
         );
+        // …but exactly the buffer apart is fine, and so is an explicit admin override.
+        await db.query(
+          `insert into public.bookings (parent_id, instructor_id, zone_id, starts_at, ends_at, status)
+           select $1, $2, $3, b.ends_at + interval '30 minutes', b.ends_at + interval '60 minutes', 'confirmed' from public.bookings b where b.id = $4`,
+          [f.parent2, f.instructorA, f.zoneId, f.bookings.aFuture],
+        );
+        await db.query(
+          `insert into public.bookings (parent_id, instructor_id, zone_id, starts_at, ends_at, status, buffer_override)
+           select $1, $2, $3, b.starts_at - interval '30 minutes', b.starts_at, 'confirmed', true from public.bookings b where b.id = $4`,
+          [f.parent2, f.instructorA, f.zoneId, f.bookings.aFuture],
+        );
+        // Overlapping a cancelled lesson is fine.
         await db.query(
           `insert into public.bookings (parent_id, instructor_id, zone_id, starts_at, ends_at, status)
            select $1, $2, $3, b.starts_at, b.ends_at, 'confirmed' from public.bookings b where b.id = $4`,
@@ -267,8 +280,8 @@ describe("signup role assignment", () => {
           [uid, email],
         );
         expect((await db.query("select role from public.users where id = $1", [uid])).rows[0].role).toBe("instructor");
-        const instr = (await db.query("select display_name, is_active from public.instructors where id = $1", [uid])).rows[0];
-        expect(instr).toEqual({ display_name: "Nia N.", is_active: false });
+        const instr = (await db.query("select first_name, is_active from public.instructors where id = $1", [uid])).rows[0];
+        expect(instr).toEqual({ first_name: "Nia", is_active: false });
         const rate = (await db.query("select pay_rate_cents_per_hour from public.instructor_private where instructor_id = $1", [uid])).rows[0];
         expect(rate.pay_rate_cents_per_hour).toBe(4400);
         expect((await db.query("select accepted_user_id from public.instructor_invites where lower(email) = lower($1)", [email])).rows[0].accepted_user_id).toBe(uid);

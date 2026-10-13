@@ -15,8 +15,8 @@ Stripe · Twilio Proxy · Resend · Google Maps Places.
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 1 | Schema, RLS, auth (magic link + Google), instructor terms gate, seed, RLS test suite | ✅ done |
-| 2 | Instructor availability builder + scheduling engine | ⏳ next |
-| 3 | Parent booking flow, pricing engine, Stripe Checkout / Portal, landing page | — |
+| 2 | Instructor profile + availability builder, scheduling engine, booking requests with auto-offer, San Diego County-only service area | ✅ done |
+| 3 | Parent booking flow, pricing engine, Stripe Checkout / Portal, landing page | ⏳ next |
 | 4 | Masked comms (Twilio Proxy), chat filter, lesson notes, notifications | — |
 | 5 | Admin console, sub board, day-pass inquiries | — |
 | 6 | Google Calendar / iCal, outbound webhooks, CSV + import adapters | — |
@@ -29,10 +29,16 @@ src/
     login/, auth/*        magic link + Google OAuth, token-hash confirm, sign-out
     onboarding/           parent profile; instructor terms acceptance
     parent/ instructor/ admin/   role areas (each layout enforces its role)
+    instructor/profile, /availability, /requests   profile (first name, bio, photo), hours & zones, accept/decline
+    admin/scheduling      run any request through the engine; rankings explained
+    api/availability      slot search for the booking calendar
+    api/cron/scheduling   expire offers & holds, auto-offer onward (Vercel Cron)
   lib/
     auth.ts               data-access layer: getCurrentUser / requireRole / safeNextPath
     supabase/             server (RLS), browser, proxy (session refresh), admin (service role)
-    time.ts               America/Los_Angeles helpers
+    time.ts               America/Los_Angeles helpers (wall clock ⇄ UTC, DST-safe)
+    scheduling/           engine (pure), snapshot loader, offer loop — see docs/scheduling.md
+    geo/                  San Diego County outline, ZIP rules, zone detection
   content/instructor-terms.ts   versioned instructor agreement text
   proxy.ts                session refresh + optimistic auth redirect (Next 16 "proxy")
 supabase/
@@ -40,9 +46,11 @@ supabase/
   seed.sql                4 instructors, 3 zones, 5 families, bookings relative to today
   templates/              auth email templates (token-hash links)
   config.toml             local Supabase CLI config
-tests/rls/                RLS suite (Vitest + pg) — runs as real `anon`/`authenticated` roles
+tests/rls/                DB suite (Vitest + pg) — runs as real `anon`/`authenticated`/`service_role`
+tests/api/                API suite — real PostgREST + supabase-js, exercising the app's server modules
 scripts/db/               test DB builder + Supabase shim for vanilla Postgres
-docs/                     security model, deployment
+scripts/api-test/         downloads PostgREST, mounts it at /rest/v1, runs tests/api
+docs/                     security model, scheduling, deployment
 ```
 
 ## Local setup
@@ -69,10 +77,10 @@ Sign in with any seeded email — the magic link lands in Mailpit at <http://127
 | Email | Role | Notes |
 | --- | --- | --- |
 | `owner@example.com` | admin | |
-| `maya@example.com` | instructor | 2 lessons **today** → addresses visible; favorite of the Carter family |
-| `jordan@example.com` | instructor | lessons tomorrow and in 3 days → addresses hidden |
-| `tyler@example.com` | instructor | released a lesson to the sub board; has a pending booking request; certs expiring soon |
-| `sofia@example.com` | instructor | blackout date in 10 days |
+| `maya@example.com` | instructor | 2 lessons **today** (each address shows until 2 h after it ends); favorite of the Carter family |
+| `jordan@example.com` | instructor | lessons tomorrow and in 3 days → addresses hidden; extra early hours in 5 days |
+| `tyler@example.com` | instructor | a pending booking request under **Requests**; released a lesson to the sub board; certs expiring soon |
+| `sofia@example.com` | instructor | zone A only; blackout date in 10 days |
 | `emily@example.com` | parent | 2 kids, weekly recurring series, completed lesson with progress note |
 | `priya@example.com` | parent | 3 kids (group pricing), day-pass inquiry |
 | `daniel@example.com` / `marcus@example.com` / `hannah@example.com` | parent | package, zone B, zone C |
@@ -95,6 +103,7 @@ Sign in with any seeded email — the magic link lands in Mailpit at <http://127
 | `npm test` | unit tests (`src/**/*.test.ts`) |
 | `npm run test:rls` | **builds a fresh DB** from `TEST_DATABASE_URL` (shim → migrations → seed) and runs the RLS suite |
 | `npm run test:rls:supabase` | runs the RLS suite against an existing DB (e.g. local Supabase after `db reset`) |
+| `npm run test:api` | fresh DB + real PostgREST (downloaded once, cached) + supabase-js: availability, the auto-offer loop, cron, page queries |
 | `npm run db:reset` | `supabase db reset` |
 | `npm run db:types` | generate `src/lib/database.types.ts` from the local schema |
 
@@ -123,7 +132,7 @@ supabase db reset
 TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run test:rls:supabase
 ```
 
-What the suite proves (52 tests), among others:
+What the database suite proves (75 tests), among others:
 
 - an instructor cannot read **any** parent row in `users` (email/phone/last name), `parents`, `children`,
   `booking_locations`, `booking_pricing`, `payments`, `packages`, day-pass inquiries, flagged messages or webhooks;
@@ -134,7 +143,25 @@ What the suite proves (52 tests), among others:
 - instructors who haven't accepted the **current** terms version see nothing;
 - role escalation via user metadata or `UPDATE users SET role` is impossible; message senders can't be spoofed;
 - the exclusion constraint blocks double-booking an instructor;
-- every table in `public` has RLS enabled.
+- every table in `public` has RLS enabled;
+- zones, home addresses and lesson addresses can only be in San Diego County (ZIP + county outline);
+- an instructor can't be active (visible to families) without a first name, bio and photo, and the first name
+  can't carry a phone number, email or handle;
+- the travel-buffer trigger and the engine agree: every slot the engine offers on the seed data is accepted
+  by the database;
+- accept/decline/expiry of booking requests, and the service-role-only automation RPCs.
+
+Unit tests (72) cover the scheduling engine (windows, overrides, DST, buffers, qualification, neighborhood
+slots, ranking), San Diego County geometry, and time/phone helpers. The API suite (7) runs the real
+server modules through PostgREST: availability search, a request auto-offered down the ranked list until
+nobody is left, acceptance, the maintenance cron, and the exact queries the pages run.
+
+## Service area: San Diego County only
+
+Zone ZIPs, home addresses and lesson addresses must be San Diego County ZIPs (919xx, 920xx or 921xx). Zone
+boundaries and stored coordinates must sit inside the county outline. These are Postgres CHECK constraints, so
+neither the admin UI nor the API can create an out-of-county zone or booking. `detectZone()` rejects
+out-of-county addresses before looking at zones.
 
 ## Deploying
 

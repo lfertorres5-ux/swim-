@@ -71,3 +71,33 @@ export const PERMISSION_DENIED = "42501"; // insufficient_privilege (also RLS WI
 export const EXCLUSION_VIOLATION = "23P01";
 export const NO_DATA_FOUND = "P0002";
 export const INVALID_PARAMETER = "22023";
+export const CHECK_VIOLATION = "23514";
+export const TRAVEL_BUFFER_CONFLICT = "SB001";
+export const OFFER_NOT_PENDING = "SB002";
+
+/** One transaction (always rolled back) in which the test can switch identities. */
+export async function inTransaction<T>(fn: (db: Db) => Promise<T>): Promise<T> {
+  const db = await pool.connect();
+  try {
+    await db.query("begin");
+    return await fn(db);
+  } finally {
+    await db.query("rollback").catch(() => {});
+    db.release();
+  }
+}
+
+export async function becomeUser(db: Db, userId: string) {
+  await db.query("set local role authenticated");
+  await db.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify({ sub: userId, role: "authenticated" })]);
+}
+
+export async function becomeServiceRole(db: Db) {
+  await db.query("set local role service_role");
+  await db.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify({ role: "service_role" })]);
+}
+
+export async function becomeOwner(db: Db) {
+  await db.query("reset role");
+  await db.query("select set_config('request.jwt.claims', '', true)");
+}
