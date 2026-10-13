@@ -1,0 +1,88 @@
+import { requireRole } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { formatTime, laDateString } from "@/lib/time";
+
+type LessonChild = { first_name: string; age: number | null; swim_level: string; notes: string | null };
+type Address = { line1: string; line2: string | null; city: string; postal_code: string; access_notes: string | null };
+type Lesson = {
+  booking_id: string;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  zone_code: string;
+  neighborhood: string | null;
+  children: LessonChild[];
+  address: Address | null;
+  address_visible: boolean;
+  address_visible_from: string;
+};
+
+/**
+ * Today's route. Client details come ONLY from the audited instructor_lessons
+ * RPC: each lesson shown here writes an audit_log row, and the street address
+ * is present only inside the day-of reveal window.
+ */
+export default async function InstructorToday() {
+  await requireRole("instructor");
+  const supabase = await createClient();
+  const today = laDateString();
+  const { data, error } = await supabase.rpc("instructor_lessons", { p_from: today, p_to: today });
+  const lessons = (data ?? []) as Lesson[];
+
+  return (
+    <div>
+      <h1 className="text-2xl font-semibold">Today&apos;s lessons</h1>
+      <p className="mt-1 text-sm text-slate-500">
+        Addresses appear on the day of the lesson and disappear 2 hours after it ends. Client contact details are never
+        shown — use in-app chat or the masked number.
+      </p>
+      {error && <p className="mt-4 text-red-600">Couldn&apos;t load lessons.</p>}
+      <ol className="mt-6 space-y-4">
+        {lessons.map((l, i) => (
+          <li key={l.booking_id} className="card">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="font-semibold">
+                {i + 1}. {formatTime(l.starts_at)}–{formatTime(l.ends_at)}
+                <span className="ml-2 font-normal text-slate-500">
+                  Zone {l.zone_code} · {l.neighborhood}
+                </span>
+              </p>
+              <span className="badge bg-slate-100 text-slate-600">{l.status.replace("_", " ")}</span>
+            </div>
+            <ul className="mt-2 text-sm text-slate-700">
+              {l.children.map((c) => (
+                <li key={c.first_name}>
+                  <strong>{c.first_name}</strong>
+                  {c.age !== null && `, ${c.age}`} · {c.swim_level.replaceAll("_", " ")}
+                  {c.notes && <span className="block text-slate-500">“{c.notes}”</span>}
+                </li>
+              ))}
+            </ul>
+            {l.address ? (
+              <div className="mt-3 rounded-lg bg-sky-50 p-3 text-sm">
+                <p className="font-medium">
+                  {l.address.line1}
+                  {l.address.line2 && `, ${l.address.line2}`}, {l.address.city} {l.address.postal_code}
+                </p>
+                {l.address.access_notes && <p className="text-slate-600">{l.address.access_notes}</p>}
+                <a
+                  className="mt-1 inline-block font-medium text-sky-700"
+                  target="_blank"
+                  rel="noreferrer"
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                    `${l.address.line1}, ${l.address.city}, CA ${l.address.postal_code}`,
+                  )}`}
+                >
+                  Directions →
+                </a>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-slate-500">Address hidden.</p>
+            )}
+          </li>
+        ))}
+        {!lessons.length && !error && <li className="card text-slate-600">No lessons today.</li>}
+      </ol>
+    </div>
+  );
+}
