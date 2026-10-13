@@ -430,7 +430,7 @@ export function BookingWizard(props: WizardProps) {
                 onClick={() => setPlan({ kind: "package", offeringId: o.id })}
                 title={`${o.name} · ${o.discountPct}% off`}
                 quote={planQuotes[`package:${o.id}`]}
-                note="Book your first lesson now and the rest whenever you like."
+                note="Book your first lesson now and the rest whenever you like. Once your instructor confirms, you'll get their phone and email to coordinate directly."
               />
             ))}
             {props.recurringTermWeeks.map((w) => (

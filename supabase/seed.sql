@@ -23,10 +23,14 @@ insert into public.lesson_prices (duration_minutes, price_cents, label, sort_ord
   (90, 13000, '90 minutes', 3)
 on conflict (duration_minutes) do update set price_cents = excluded.price_cents, label = excluded.label;
 
+-- Packages: 6 / 8 / 14 lessons (installed by migration; repeated here so a
+-- re-seed resets any local edits).
 insert into public.package_offerings (name, lesson_count, discount_pct, validity_days, sort_order) values
-  ('4-Lesson Package', 4, 5, 120, 1),
-  ('8-Lesson Package', 8, 10, 180, 2)
-on conflict (lesson_count) do update set discount_pct = excluded.discount_pct, name = excluded.name;
+  ('6-Lesson Package', 6, 5, 150, 1),
+  ('8-Lesson Package', 8, 10, 180, 2),
+  ('14-Lesson Package', 14, 15, 270, 3)
+on conflict (lesson_count) do update set discount_pct = excluded.discount_pct, name = excluded.name, is_active = true;
+update public.package_offerings set is_active = false where lesson_count not in (6, 8, 14);
 
 update public.pricing_config set
   included_children = 2,
@@ -42,7 +46,7 @@ update public.platform_settings set
   default_instructor_pay_cents_per_hour = 4000,
   sub_board_requires_approval = true,
   address_hide_after_minutes = 120,
-  instructor_terms_version = '2026-10-01',
+  instructor_terms_version = '2026-10-16',
   support_email = 'hello@example.com';
 
 -- -----------------------------------------------------------------------------

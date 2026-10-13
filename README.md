@@ -88,12 +88,12 @@ Sign in with any seeded email — the magic link lands in Mailpit at <http://127
 | --- | --- | --- |
 | `owner@example.com` | admin | |
 | `maya@example.com` | instructor | 2 lessons **today** (each address shows until 2 h after it ends); favorite of the Carter family |
-| `jordan@example.com` | instructor | lessons tomorrow and in 3 days → addresses hidden; extra early hours in 5 days |
+| `jordan@example.com` | instructor | lessons tomorrow and in 3 days → addresses hidden; **Families** shows Daniel Kim (8-pack) with phone/email |
 | `tyler@example.com` | instructor | a pending booking request under **Requests**; released a lesson to the sub board; certs expiring soon |
 | `sofia@example.com` | instructor | zone A only; blackout date in 10 days |
 | `emily@example.com` | parent | 2 kids, weekly recurring series, completed lesson with progress note |
 | `priya@example.com` | parent | 3 kids (group pricing), day-pass inquiry |
-| `daniel@example.com` / `marcus@example.com` / `hannah@example.com` | parent | package, zone B, zone C |
+| `daniel@example.com` / `marcus@example.com` / `hannah@example.com` | parent | Daniel has an 8-pack with Jordan → sees Jordan's contact; Marcus zone B; Hannah zone C |
 | `new.instructor@example.com` | (invite) | sign in → becomes an inactive instructor → must accept terms |
 
 **Google sign-in locally:** create an OAuth client (Web) in Google Cloud, add
@@ -142,7 +142,7 @@ supabase db reset
 TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run test:rls:supabase
 ```
 
-What the database suite proves (75 tests), among others:
+What the database suite proves (84 tests), among others:
 
 - an instructor cannot read **any** parent row in `users` (email/phone/last name), `parents`, `children`,
   `booking_locations`, `booking_pricing`, `payments`, `packages`, day-pass inquiries, flagged messages or webhooks;
@@ -159,17 +159,20 @@ What the database suite proves (75 tests), among others:
   can't carry a phone number, email or handle;
 - the travel-buffer trigger and the engine agree: every slot the engine offers on the seed data is accepted
   by the database;
-- accept/decline/expiry of booking requests, and the service-role-only automation RPCs.
+- accept/decline/expiry of booking requests, and the service-role-only automation RPCs;
+- contact sharing: only after a paid package lesson is accepted, only between that family and that
+  instructor; it can be switched off, and every view is audited.
 
 Unit tests (96) cover the scheduling engine (windows, overrides, DST, buffers, qualification, neighborhood
 slots, ranking, weekly series), the pricing engine (every spec price, group, zone, package, series,
 neighborhood and promo rule), the cancellation policy, Stripe webhook signatures, San Diego County geometry,
-and time/phone helpers. The API suite (23) runs the real server modules through PostgREST:
+and time/phone helpers. The API suite (24) runs the real server modules through PostgREST:
 - availability search and the auto-offer loop (offered down the ranked list until nobody is left), plus
   acceptance and the maintenance cron;
 - checkout holds at server-computed prices, and a held slot can't be double-booked;
 - fulfillment is idempotent, and a failed payment update is raised, never treated as already done;
-- 4-pack credits, weekly series, and promo codes;
+- 6/14-pack credits and pricing, weekly series, and promo codes;
+- package purchase → accept → both sides see contact details;
 - on-time and late cancellations and their refunds, and rescheduling with the same instructor;
 - Stripe event de-duplication and expiry release;
 - the exact queries the pages run under RLS.

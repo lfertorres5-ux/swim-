@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ContactCard } from "@/components/contact-card";
 import { InstructorCard } from "@/components/instructor-card";
 import { requireRole } from "@/lib/auth";
 import { loadInstructorCards } from "@/lib/instructor-cards";
@@ -30,6 +31,9 @@ export default async function ParentHome() {
     supabase.from("parents").select("favorite_instructor_id").eq("id", user.id).single(),
   ]);
   const [favorite] = parent?.favorite_instructor_id ? await loadInstructorCards([parent.favorite_instructor_id]) : [];
+  // Audited RPC: instructors who accepted a lesson from one of your packages.
+  const { data: contacts } = await supabase.rpc("my_instructor_contacts");
+  const instructorContacts = (contacts ?? []) as { first_name: string; last_name: string | null; email: string | null; phone: string | null }[];
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -68,6 +72,11 @@ export default async function ParentHome() {
       </section>
 
       <aside className="space-y-4">
+        <ContactCard
+          title={instructorContacts.length > 1 ? "Your instructors" : "Your instructor"}
+          people={instructorContacts.map((c) => ({ name: [c.first_name, c.last_name].filter(Boolean).join(" "), email: c.email, phone: c.phone }))}
+          note="Reach out directly to coordinate. Please keep booking and paying through your account so your lessons stay covered."
+        />
         {favorite && (
           <div className="space-y-2">
             <h2 className="font-semibold text-slate-700">Your favorite instructor</h2>

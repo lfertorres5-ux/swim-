@@ -10,8 +10,9 @@ const catalog: Catalog = {
     { durationMinutes: 90, priceCents: 13000 },
   ],
   offerings: [
-    { id: "p4", name: "4-Lesson Package", lessonCount: 4, discountPct: 5, validityDays: 120 },
+    { id: "p6", name: "6-Lesson Package", lessonCount: 6, discountPct: 5, validityDays: 150 },
     { id: "p8", name: "8-Lesson Package", lessonCount: 8, discountPct: 10, validityDays: 180 },
+    { id: "p14", name: "14-Lesson Package", lessonCount: 14, discountPct: 15, validityDays: 270 },
   ],
 };
 const A: ZonePricing = { id: "a", code: "A", travelFeeCents: 0, minBookingMinutes: 0, isBookable: true };
@@ -70,11 +71,11 @@ describe("neighborhood slot discount", () => {
 });
 
 describe("packages and recurring series", () => {
-  it("4-pack is 5% off, 8-pack 10% off", () => {
-    const four = quoteLesson({ durationMinutes: 60, childrenCount: 1, zone: A, plan: { kind: "package", offering: catalog.offerings[0] } }, catalog);
-    expect(four).toMatchObject({ lessonCount: 4, totalCents: 4 * 8550 });
-    const eight = quoteLesson({ durationMinutes: 60, childrenCount: 1, zone: A, plan: { kind: "package", offering: catalog.offerings[1] } }, catalog);
-    expect(eight.totalCents).toBe(64800);
+  it("6-pack is 5% off, 8-pack 10% off, 14-pack 15% off", () => {
+    const q = (i: number) => quoteLesson({ durationMinutes: 60, childrenCount: 1, zone: A, plan: { kind: "package", offering: catalog.offerings[i] } }, catalog);
+    expect(q(0)).toMatchObject({ lessonCount: 6, totalCents: 6 * 8550 });
+    expect(q(1).totalCents).toBe(64800);
+    expect(q(2)).toMatchObject({ lessonCount: 14, totalCents: 14 * 7650 });
   });
 
   it("weekly series is 10% off the lesson price; travel fee isn't discounted", () => {

@@ -11,7 +11,7 @@ Code: `src/lib/pricing/` (pure pricing engine), `src/lib/booking/` (checkout, fu
 | Each swimmer beyond 2 | +$25 per lesson |
 | Travel fee (per lesson) | Zone A $0 · Zone B $10 · Zone C $20 |
 | Zone minimum | Zone C: 60 minutes |
-| 4-pack / 8-pack | 5% / 10% off the lesson price |
+| 6-pack / 8-pack / 14-pack | 5% / 10% / 15% off the lesson price (validity 150 / 180 / 270 days) |
 | Weekly series | 10% off the lesson price; terms of 4 or 8 weeks (`platform_settings.recurring_term_weeks`) |
 | Neighborhood slot | $5 off (single lessons only) |
 | Promo codes | `discount_codes`: % or $ off, limited to plan kinds, dates and redemptions |
@@ -41,6 +41,9 @@ the browser shows is only for display, and checkout recomputes it.
      (`start_booking_request`), which hands off to the Phase 2 auto-offer loop.
 5. **Abandoned checkout:** Stripe's `checkout.session.expired` event, the cancel page, or the maintenance cron
    calls `release_booking_hold`, which voids the payment and expires the held lessons.
+
+Buying a package also unlocks **direct contact** with the instructor once they accept a lesson from it (see
+[security-model.md](security-model.md#contact-sharing-package-families)).
 
 Lessons booked with a **package credit**, or orders a promo makes free, skip Stripe and open the instructor
 request immediately. Credits are consumed atomically (`consume_package_credit`) and must match the package's

@@ -21,7 +21,7 @@ below is enforced by **Postgres itself**, and each one is covered by `tests/rls/
 
 | Data | Table | Who can read |
 | --- | --- | --- |
-| Parent email, phone, last name | `users` | self, admin |
+| Parent email, phone, last name | `users` | self, admin. Instructor: **only** via the audited `my_family_contacts()` RPC, and only for package families (see Contact sharing) |
 | Home address, Stripe customer | `parents` | self, admin |
 | Child first name, birth date, level, notes | `children` | parent, admin. Instructor: **RPC only**, as first name + *age* + level + notes |
 | Lesson street address + gate code | `booking_locations` | parent, admin. Instructor: **RPC only**, from local midnight on lesson day until end + 2 h (configurable) |
@@ -47,6 +47,23 @@ Anything an instructor must not see sits in a table they have no policy on.
 
 Publishing new terms (bumping the version) immediately cuts off every instructor's access to client data
 until they accept again. Reassigning a booking (a sub) moves access to the new instructor instantly.
+
+## Contact sharing (package families)
+
+**Owner decision:** once a family has **paid for a package** and an instructor has **accepted a lesson from
+it**, that family and that instructor may see each other's name, phone and email. Both sides use audited RPCs:
+- `my_family_contacts()` for instructors;
+- `my_instructor_contacts()` for parents.
+
+Nothing else changes:
+- **Masked:** single lessons and weekly series; other instructors; unpaid, refunded or expired packages.
+- **No new table access:** instructors still have no row access to `users`/`parents`, so the RPC is the only
+  path.
+- **Address:** the lesson address keeps its day-of reveal window.
+- **Off switch:** `platform_settings.contact_sharing = 'never'` turns sharing off everywhere.
+
+Every contact view writes an `audit_log` row. Instructor terms version `2026-10-16` covers this: contact is
+allowed, but booking and payment must stay on the platform.
 
 ## Instructor profiles
 

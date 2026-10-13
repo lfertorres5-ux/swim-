@@ -16,6 +16,7 @@ export default async function InstructorLayout({ children }: LayoutProps<"/instr
         nav={[
           { href: "/instructor", label: "Today" },
           { href: "/instructor/requests", label: "Requests" },
+          { href: "/instructor/families", label: "Families" },
           { href: "/instructor/availability", label: "Availability" },
           { href: "/instructor/profile", label: "Profile" },
         ]}

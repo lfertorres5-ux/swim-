@@ -142,17 +142,17 @@ describe.skipIf(!enabled)("booking + payments through the real API", () => {
     if (again.kind === "redirect") await checkout.releaseCheckout(again.paymentId);
   });
 
-  it("4-lesson package: pays 4 × 5% off, books the first lesson, then books with a credit for $0", async () => {
-    const { data: offering } = await clientAs("anon").from("package_offerings").select("id").eq("lesson_count", 4).single();
+  it("6-lesson package: pays 6 × 5% off, books the first lesson, then books with a credit for $0", async () => {
+    const { data: offering } = await clientAs("anon").from("package_offerings").select("id").eq("lesson_count", 6).single();
     const { start } = await freeSlot({ durationMinutes: 30, swimmers: [{ ageMonths: 60, level: "beginner" }, { ageMonths: 40, level: "water_acclimation" }] });
     const r = await checkout.createBookingCheckout(EMILY, { address: addr.emily, durationMinutes: 30, childIds: [kids.lucas, kids.ava], instructorId: null, plan: { kind: "package", offeringId: offering!.id }, start });
     if (r.kind !== "redirect") throw new Error("expected redirect");
     const pay = await db.query("select amount_cents, package_id from public.payments where id = $1", [r.paymentId]);
-    expect(pay.rows[0].amount_cents).toBe(4 * Math.round(6500 * 0.95)); // 24,700
+    expect(pay.rows[0].amount_cents).toBe(6 * Math.round(6500 * 0.95)); // 37,050
 
     await checkout.fulfillPayment({ paymentId: r.paymentId, sessionId: "dev_cs_pkg", paymentIntentId: "dev_pi_pkg", amountTotal: null, receiptUrl: null, chargeId: null });
     const pkg = await db.query("select status, lessons_remaining from public.packages where id = $1", [pay.rows[0].package_id]);
-    expect(pkg.rows[0]).toEqual({ status: "active", lessons_remaining: 3 });
+    expect(pkg.rows[0]).toEqual({ status: "active", lessons_remaining: 5 });
     const first = await db.query("select status from public.bookings where package_id = $1", [pay.rows[0].package_id]);
     expect(first.rows.map((x) => x.status)).toEqual(["pending_instructor"]);
 
@@ -160,7 +160,7 @@ describe.skipIf(!enabled)("booking + payments through the real API", () => {
     const credit = await checkout.createBookingCheckout(EMILY, { address: addr.emily, durationMinutes: 30, childIds: [kids.lucas, kids.ava], instructorId: null, plan: { kind: "package_credit", packageId: pay.rows[0].package_id }, start: next });
     expect(credit.kind).toBe("confirmed");
     const after = await db.query("select lessons_remaining from public.packages where id = $1", [pay.rows[0].package_id]);
-    expect(after.rows[0].lessons_remaining).toBe(2);
+    expect(after.rows[0].lessons_remaining).toBe(4);
     const priced = await db.query("select total_cents from public.booking_pricing where booking_id = $1", [credit.bookingIds[0]]);
     expect(priced.rows[0].total_cents).toBe(0);
 
@@ -302,5 +302,31 @@ describe.skipIf(!enabled)("booking + payments through the real API", () => {
     expect(await manage.previewCancellation(DANIEL, b.rows[0].id)).toMatchObject({ onTime: true, refundCents: 9000 });
     await manage.cancelBooking(DANIEL, b.rows[0].id, null);
     expect((await db.query("select status, refunded_cents from public.payments where id = $1", [p.rows[0].id])).rows[0]).toEqual({ status: "refunded", refunded_cents: 9000 });
+  });
+
+  it("package purchase → instructor accepts → family and instructor see each other's contact details", async () => {
+    const { data: offering } = await clientAs("anon").from("package_offerings").select("id, discount_pct").eq("lesson_count", 14).single();
+    expect(Number(offering!.discount_pct)).toBe(15);
+    const { start } = await freeSlot({ durationMinutes: 60, swimmers: [{ ageMonths: 98, level: "intermediate" }], from: 13 });
+    const r = await checkout.createBookingCheckout(DANIEL, { address: addr.daniel, durationMinutes: 60, childIds: [kids.noah], instructorId: null, plan: { kind: "package", offeringId: offering!.id }, start });
+    if (r.kind !== "redirect") throw new Error("expected redirect");
+    expect((await db.query("select amount_cents from public.payments where id = $1", [r.paymentId])).rows[0].amount_cents).toBe(14 * 7650);
+    await checkout.fulfillPayment({ paymentId: r.paymentId, sessionId: "dev_cs_14pack", paymentIntentId: "dev_pi_14pack", amountTotal: null, receiptUrl: null, chargeId: null });
+
+    const lesson = r.bookingIds[0];
+    const { rows } = await db.query("select instructor_id from public.bookings where id = $1", [lesson]);
+    const instructor = clientAs(rows[0].instructor_id);
+    const daniel = clientAs(DANIEL);
+
+    // Paid but not yet accepted → still masked.
+    expect((await instructor.rpc("my_family_contacts")).data?.find((c: { parent_id: string }) => c.parent_id === DANIEL)).toBeUndefined();
+
+    const { data: offer } = await instructor.from("booking_offers").select("id").eq("booking_id", lesson).eq("status", "pending").single();
+    expect((await instructor.rpc("respond_to_booking_offer", { p_offer_id: offer!.id, p_accept: true })).data).toBe("accepted");
+
+    const fam = (await instructor.rpc("my_family_contacts")).data as { parent_id: string; last_name: string; email: string; phone: string; children: string[] }[];
+    expect(fam.find((c) => c.parent_id === DANIEL)).toMatchObject({ last_name: "Kim", email: "daniel@example.com", phone: "+18585550122", children: ["Noah"] });
+    const mine = (await daniel.rpc("my_instructor_contacts")).data as { instructor_id: string; email: string }[];
+    expect(mine.map((c) => c.instructor_id)).toContain(rows[0].instructor_id);
   });
 });
