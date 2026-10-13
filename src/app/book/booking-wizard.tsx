@@ -55,6 +55,7 @@ const addDays = (iso: string, n: number) => {
   return d.toISOString().slice(0, 10);
 };
 const whenFmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
+const whenShort = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", weekday: "short", hour: "numeric", minute: "2-digit" });
 
 export function BookingWizard(props: WizardProps) {
   const [step, setStep] = useState(0);
@@ -254,152 +255,150 @@ export function BookingWizard(props: WizardProps) {
 
   const chosenInstructor = instructors?.find((i) => i.id === (instructorId ?? slot?.instructorIds[0]));
 
+  const goToTime = () => {
+    setSlot(null);
+    setStep(4);
+  };
+  const goToReview = () => {
+    setQuote(null);
+    setStep(5);
+    refreshQuote();
+  };
+  const back = step > 0 ? () => setStep(step - 1) : undefined;
+  const swimmerNames = children.filter((c) => childIds.includes(c.id)).map((c) => c.firstName);
+
   return (
-    <div className="mx-auto max-w-5xl">
-      <ol className="mb-8 flex flex-wrap gap-2 text-sm">
-        {STEPS.map((label, i) => (
-          <li key={label}>
-            <button
-              type="button"
-              disabled={i > step}
-              onClick={() => setStep(i)}
-              className={`rounded-full px-3 py-1 ${i === step ? "bg-sky-600 text-white" : i < step ? "bg-sky-100 text-sky-800" : "bg-slate-100 text-slate-400"}`}
-            >
-              {i + 1}. {label}
-            </button>
-          </li>
-        ))}
-      </ol>
+    <div className="mx-auto max-w-3xl pb-28 lg:max-w-5xl lg:pb-0">
+      <div className="mb-6">
+        <p className="text-sm text-stone-500">
+          Step {step + 1} of {STEPS.length} · {STEPS[step]}
+        </p>
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-sand-dark">
+          <div className="h-full rounded-full bg-brand-500 transition-all" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+        </div>
+      </div>
 
       {error && (
-        <p className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">
+        <p className="mb-5 rounded-2xl bg-coral-50 p-4 text-sm text-coral-700" role="alert">
           {error}
         </p>
       )}
 
       {step === 0 && (
-        <section className="card max-w-2xl space-y-4">
-          <h2 className="text-xl font-semibold">Where are the lessons?</h2>
-          <p className="text-sm text-slate-600">We come to your pool anywhere in our San Diego County service area. Your address is only shared with your instructor on the day of each lesson.</p>
-          {!manual && props.mapsBrowserKey ? (
-            <>
-              <AddressAutocomplete apiKey={props.mapsBrowserKey} onPick={(s) => setAddress((a) => ({ ...a, placeId: s.placeId, line1: s.line1 }))} />
-              <button type="button" className="text-sm text-sky-700 underline" onClick={() => setManual(true)}>
-                Enter address manually
-              </button>
-            </>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-6">
-              <input className="input sm:col-span-4" placeholder="Street address" value={address.line1} onChange={(e) => setAddress({ ...address, line1: e.target.value, placeId: undefined })} />
-              <input className="input sm:col-span-2" placeholder="Apt / unit" value={address.line2} onChange={(e) => setAddress({ ...address, line2: e.target.value })} />
-              <input className="input sm:col-span-4" placeholder="City" value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value, placeId: undefined })} />
-              <input className="input sm:col-span-2" placeholder="ZIP" inputMode="numeric" maxLength={5} value={address.postalCode} onChange={(e) => setAddress({ ...address, postalCode: e.target.value, placeId: undefined })} />
-            </div>
-          )}
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-            Gate code, parking or pool directions <span className="font-normal text-slate-500">(shared with your instructor on lesson day)</span>
-            <input className="input" value={address.accessNotes} maxLength={500} onChange={(e) => setAddress({ ...address, accessNotes: e.target.value })} />
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" checked={saveAsHome} onChange={(e) => setSaveAsHome(e.target.checked)} /> Save as my home pool address
-          </label>
-          <button className="btn-primary" disabled={pending || address.line1.trim().length < 3} onClick={checkAddress}>
-            {pending ? "Checking…" : "Check my address"}
-          </button>
+        <section className="space-y-5">
+          <Heading title="Where's the pool?" sub="We come to you anywhere in our San Diego service area. Your instructor only sees the address on lesson day." />
+          <div className="card space-y-4">
+            {!manual && props.mapsBrowserKey ? (
+              <>
+                <AddressAutocomplete apiKey={props.mapsBrowserKey} onPick={(s) => setAddress((a) => ({ ...a, placeId: s.placeId, line1: s.line1 }))} />
+                <button type="button" className="text-sm text-brand-700 underline" onClick={() => setManual(true)}>
+                  Type it in instead
+                </button>
+              </>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-6">
+                <input className="input sm:col-span-4" placeholder="Street address" autoComplete="address-line1" value={address.line1} onChange={(e) => setAddress({ ...address, line1: e.target.value, placeId: undefined })} />
+                <input className="input sm:col-span-2" placeholder="Apt / unit" autoComplete="address-line2" value={address.line2} onChange={(e) => setAddress({ ...address, line2: e.target.value })} />
+                <input className="input sm:col-span-4" placeholder="City" autoComplete="address-level2" value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value, placeId: undefined })} />
+                <input className="input sm:col-span-2" placeholder="ZIP" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={address.postalCode} onChange={(e) => setAddress({ ...address, postalCode: e.target.value, placeId: undefined })} />
+              </div>
+            )}
+            <label className="block text-sm text-stone-700">
+              Gate code or how to find the pool <span className="text-stone-400">(optional)</span>
+              <input className="input mt-1" value={address.accessNotes} maxLength={500} onChange={(e) => setAddress({ ...address, accessNotes: e.target.value })} />
+            </label>
+            <label className="flex items-center gap-2 text-sm text-stone-600">
+              <input type="checkbox" checked={saveAsHome} onChange={(e) => setSaveAsHome(e.target.checked)} /> Remember this address
+            </label>
+          </div>
+          <Actions primary={pending ? "Checking…" : "Continue"} disabled={pending || address.line1.trim().length < 3} onPrimary={checkAddress} />
         </section>
       )}
 
       {step === 1 && zone && (
-        <section className="space-y-6">
-          <div className="card flex flex-wrap items-center justify-between gap-2 border-emerald-200 bg-emerald-50">
-            <p className="text-emerald-900">
-              ✓ You&apos;re in <strong>Zone {zone.code}</strong> ({zone.name}){neighborhood ? ` · ${neighborhood}` : ""}.{" "}
-              {zone.travelFeeCents ? `${money(zone.travelFeeCents)} travel fee per lesson.` : "No travel fee."}
-              {zone.minBookingMinutes ? ` ${zone.minBookingMinutes}-minute minimum.` : ""}
-            </p>
-            <button className="text-sm text-emerald-800 underline" onClick={() => setStep(0)}>
+        <section className="space-y-5">
+          <p className="rounded-2xl bg-brand-50 px-4 py-3 text-sm text-brand-900">
+            Good news — we come to {neighborhood ?? address.city}.{" "}
+            {zone.travelFeeCents ? `There's a ${money(zone.travelFeeCents)} travel fee per lesson.` : "No travel fee."}
+            {zone.minBookingMinutes ? ` Lessons here are at least ${zone.minBookingMinutes} minutes.` : ""}{" "}
+            <button className="underline" onClick={() => setStep(0)}>
               Change
             </button>
-          </div>
+          </p>
 
-          <div className="card space-y-3">
-            <h2 className="text-xl font-semibold">Who&apos;s swimming?</h2>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {children.map((c) => (
-                <label key={c.id} className={`flex items-center gap-3 rounded-xl border p-3 ${childIds.includes(c.id) ? "border-sky-500 bg-sky-50" : "border-slate-200"}`}>
-                  <input type="checkbox" checked={childIds.includes(c.id)} onChange={(e) => setChildIds((ids) => (e.target.checked ? [...ids, c.id] : ids.filter((x) => x !== c.id)))} />
+          <Heading title="Who's swimming?" />
+          <div className="grid gap-2 sm:grid-cols-2">
+            {children.map((c) => {
+              const on = childIds.includes(c.id);
+              return (
+                <label key={c.id} className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 bg-white p-4 transition ${on ? "border-brand-500" : "border-transparent"}`}>
+                  <input type="checkbox" className="h-5 w-5 accent-brand-600" checked={on} onChange={(e) => setChildIds((ids) => (e.target.checked ? [...ids, c.id] : ids.filter((x) => x !== c.id)))} />
                   <span>
-                    <span className="font-medium">{c.firstName}</span>
-                    <span className="block text-xs text-slate-500">{LEVELS.find(([v]) => v === c.swimLevel)?.[1]}</span>
+                    <span className="font-medium text-stone-900">{c.firstName}</span>
+                    <span className="block text-sm text-stone-500">{LEVELS.find(([v]) => v === c.swimLevel)?.[1]}</span>
                   </span>
                 </label>
-              ))}
-            </div>
-            {showAddChild ? (
-              <div className="grid gap-3 rounded-xl border border-dashed border-slate-300 p-3 sm:grid-cols-4">
-                <input className="input" placeholder="First name" value={newChild.firstName} onChange={(e) => setNewChild({ ...newChild, firstName: e.target.value })} />
-                <label className="text-xs text-slate-500">
-                  Birth date
-                  <input type="date" className="input" max={props.today} value={newChild.birthDate} onChange={(e) => setNewChild({ ...newChild, birthDate: e.target.value })} />
-                </label>
-                <select className="input" value={newChild.swimLevel} onChange={(e) => setNewChild({ ...newChild, swimLevel: e.target.value })}>
-                  {LEVELS.map(([v, l]) => (
-                    <option key={v} value={v}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-                <input className="input" placeholder="Notes for instructor (optional)" value={newChild.notes} onChange={(e) => setNewChild({ ...newChild, notes: e.target.value })} />
-                <button className="btn-secondary sm:col-span-4 sm:w-fit" disabled={pending} onClick={addChild}>
-                  Add swimmer
-                </button>
-              </div>
-            ) : (
-              <button className="text-sm text-sky-700 underline" onClick={() => setShowAddChild(true)}>
-                + Add a swimmer
+              );
+            })}
+          </div>
+          {showAddChild ? (
+            <div className="card grid gap-3 sm:grid-cols-2">
+              <input className="input" placeholder="First name" value={newChild.firstName} onChange={(e) => setNewChild({ ...newChild, firstName: e.target.value })} />
+              <label className="text-sm text-stone-500">
+                Birthday
+                <input type="date" className="input mt-1" max={props.today} value={newChild.birthDate} onChange={(e) => setNewChild({ ...newChild, birthDate: e.target.value })} />
+              </label>
+              <select className="input" value={newChild.swimLevel} onChange={(e) => setNewChild({ ...newChild, swimLevel: e.target.value })} aria-label="Swim level">
+                {LEVELS.map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+              <input className="input" placeholder="Anything the instructor should know?" value={newChild.notes} onChange={(e) => setNewChild({ ...newChild, notes: e.target.value })} />
+              <button className="btn-secondary sm:w-fit" disabled={pending} onClick={addChild}>
+                Add
               </button>
-            )}
-            <p className="text-xs text-slate-500">
-              Lessons include up to {props.includedChildren} swimmers; each additional swimmer is {money(props.extraChildCents)} per lesson. Only first names, ages, levels and
-              notes are shared with your instructor.
-            </p>
-          </div>
-
-          <div className="card space-y-3">
-            <h2 className="text-xl font-semibold">Lesson length</h2>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {props.prices.map((p) => {
-                const disabled = p.durationMinutes < zone.minBookingMinutes;
-                return (
-                  <button
-                    key={p.durationMinutes}
-                    disabled={disabled}
-                    onClick={() => setDuration(p.durationMinutes)}
-                    className={`rounded-xl border p-4 text-left ${duration === p.durationMinutes ? "border-sky-500 bg-sky-50" : "border-slate-200"} ${disabled ? "opacity-40" : ""}`}
-                  >
-                    <span className="block text-lg font-semibold">{p.durationMinutes} min</span>
-                    <span className="text-sm text-slate-600">{money(p.priceCents)} per lesson</span>
-                    {disabled && <span className="block text-xs text-slate-500">Zone {zone.code} minimum is {zone.minBookingMinutes} min</span>}
-                  </button>
-                );
-              })}
             </div>
+          ) : (
+            <button className="text-sm font-medium text-brand-700" onClick={() => setShowAddChild(true)}>
+              + Add a swimmer
+            </button>
+          )}
+          <p className="text-sm text-stone-500">
+            Up to {props.includedChildren} kids per lesson at no extra cost, then {money(props.extraChildCents)} each.
+          </p>
+
+          <Heading title="How long?" />
+          <div className="grid grid-cols-3 gap-2">
+            {props.prices.map((p) => {
+              const disabled = p.durationMinutes < zone.minBookingMinutes;
+              const on = duration === p.durationMinutes;
+              return (
+                <button
+                  key={p.durationMinutes}
+                  disabled={disabled}
+                  onClick={() => setDuration(p.durationMinutes)}
+                  className={`rounded-2xl border-2 bg-white p-4 text-center transition ${on ? "border-brand-500" : "border-transparent"} ${disabled ? "opacity-40" : ""}`}
+                >
+                  <span className="block font-display text-xl font-semibold">{p.durationMinutes} min</span>
+                  <span className="text-sm text-stone-500">{money(p.priceCents)}</span>
+                </button>
+              );
+            })}
           </div>
-          <button className="btn-primary" disabled={pending || !duration || childIds.length === 0} onClick={continueToInstructors}>
-            {pending ? "Finding instructors…" : "Continue"}
-          </button>
+          <Actions onBack={back} primary={pending ? "One sec…" : "Continue"} disabled={pending || !duration || childIds.length === 0} onPrimary={continueToInstructors} />
         </section>
       )}
 
       {step === 2 && instructors && (
-        <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Choose your instructor</h2>
-          <p className="text-sm text-slate-600">All instructors are CPR- and lifeguard-certified and insured. Pick someone specific, or let us match you with the first available.</p>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <section className="space-y-5">
+          <Heading title="Pick an instructor" sub="Everyone's CPR- and lifeguard-certified. Choose someone, or we'll match you." />
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             <button onClick={() => setInstructorId(null)} className="text-left">
-              <div className={`card flex h-full flex-col justify-center gap-2 ${instructorId === null ? "ring-2 ring-sky-500" : ""}`}>
-                <p className="text-lg font-semibold">⚡ First available</p>
-                <p className="text-sm text-slate-600">See the most times. We&apos;ll match you with the best-fit instructor for your pool, swimmers and schedule.</p>
+              <div className={`card flex h-full flex-col justify-center gap-1 border-2 ${instructorId === null ? "border-brand-500" : "border-transparent"}`}>
+                <p className="font-display text-lg font-semibold">Whoever&apos;s available</p>
+                <p className="text-sm text-stone-600">You&apos;ll see the most times. We pick the best fit for your kids and schedule.</p>
               </div>
             </button>
             {[...instructors]
@@ -411,26 +410,25 @@ export function BookingWizard(props: WizardProps) {
                 </button>
               ))}
           </div>
-          {instructors.length === 0 && <p className="card text-slate-600">No instructor currently teaches this combination of area, ages and levels. Please contact us and we&apos;ll help.</p>}
-          <button className="btn-primary" disabled={instructors.length === 0} onClick={() => setStep(3)}>
-            Continue
-          </button>
+          {instructors.length === 0 && <p className="card text-stone-600">We don&apos;t have an instructor for this combination of ages and levels yet. Give us a call and we&apos;ll sort it out.</p>}
+          <Actions onBack={back} primary="Continue" disabled={instructors.length === 0} onPrimary={() => setStep(3)} />
         </section>
       )}
 
       {step === 3 && duration && zone && (
-        <section className="space-y-4">
-          <h2 className="text-xl font-semibold">How would you like to book?</h2>
-          <div className="grid gap-3 md:grid-cols-2">
-            <PlanOption selected={plan.kind === "single"} onClick={() => setPlan({ kind: "single" })} title="Single lesson" quote={planQuotes.single} note={`Neighborhood slots save ${money(props.neighborhoodDiscountCents)}.`} />
+        <section className="space-y-5">
+          <Heading title="One lesson or a bundle?" sub="Packages save money, and once your instructor confirms you'll have their number." />
+          <div className="space-y-2">
+            <PlanOption selected={plan.kind === "single"} onClick={() => setPlan({ kind: "single" })} title="Single lesson" quote={planQuotes.single} />
             {props.offerings.map((o) => (
               <PlanOption
                 key={o.id}
                 selected={plan.kind === "package" && plan.offeringId === o.id}
                 onClick={() => setPlan({ kind: "package", offeringId: o.id })}
-                title={`${o.name} · ${o.discountPct}% off`}
+                title={`${o.lessonCount} lessons`}
+                tag={`Save ${o.discountPct}%`}
                 quote={planQuotes[`package:${o.id}`]}
-                note="Book your first lesson now and the rest whenever you like. Once your instructor confirms, you'll get their phone and email to coordinate directly."
+                note="Book the rest whenever you like"
               />
             ))}
             {props.recurringTermWeeks.map((w) => (
@@ -438,9 +436,10 @@ export function BookingWizard(props: WizardProps) {
                 key={w}
                 selected={plan.kind === "recurring" && plan.weeks === w}
                 onClick={() => setPlan({ kind: "recurring", weeks: w })}
-                title={`Weekly for ${w} weeks · ${props.recurringDiscountPct}% off`}
+                title={`Weekly · ${w} weeks`}
+                tag={`Save ${props.recurringDiscountPct}%`}
                 quote={planQuotes[`recurring:${w}`]}
-                note="Same day, time and instructor every week."
+                note="Same time and instructor each week"
               />
             ))}
             {usableCredits.map((p) => (
@@ -448,62 +447,58 @@ export function BookingWizard(props: WizardProps) {
                 key={p.id}
                 selected={plan.kind === "package_credit" && plan.packageId === p.id}
                 onClick={() => setPlan({ kind: "package_credit", packageId: p.id })}
-                title={`Use a package credit (${p.lessonsRemaining} left)`}
-                quote={undefined}
-                note="Already paid — no charge today."
+                title="Use a lesson from my package"
+                note={`${p.lessonsRemaining} left · already paid`}
               />
             ))}
           </div>
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setSlot(null);
-              setStep(4);
-            }}
-          >
-            Continue
-          </button>
+          <Actions onBack={back} primary="Continue" onPrimary={goToTime} />
         </section>
       )}
 
       {step === 4 && (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold">{weeks ? `Pick a weekly time (${weeks} weeks)` : "Pick a time"}</h2>
-              <p className="text-sm text-slate-500">
-                All times are San Diego time.{" "}
-                <span className="badge bg-emerald-100 text-emerald-800">Neighborhood −{money(props.neighborhoodDiscountCents)}</span> slots are next to another lesson nearby
-                {plan.kind === "single" ? " and are discounted." : " (discount applies to single lessons)."}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button className="btn-secondary" disabled={weekStart <= addDays(props.today, 1) || slotsLoading} onClick={() => setWeekStart(addDays(weekStart, -7))}>
-                ← Earlier
+        <section className="space-y-5">
+          <div className="flex items-end justify-between gap-3">
+            <Heading title={weeks ? "Pick your weekly time" : "Pick a time"} sub={weeks ? `Same time each week for ${weeks} weeks.` : "San Diego time."} />
+            <div className="flex shrink-0 gap-1.5">
+              <button className="btn-secondary px-3" aria-label="Earlier week" disabled={weekStart <= addDays(props.today, 1) || slotsLoading} onClick={() => setWeekStart(addDays(weekStart, -7))}>
+                ←
               </button>
-              <button className="btn-secondary" disabled={slotsLoading} onClick={() => setWeekStart(addDays(weekStart, 7))}>
-                Later →
+              <button className="btn-secondary px-3" aria-label="Later week" disabled={slotsLoading} onClick={() => setWeekStart(addDays(weekStart, 7))}>
+                →
               </button>
             </div>
           </div>
 
-          <div className="card flex flex-wrap items-center gap-3 text-sm">
-            <span className="font-medium text-slate-700">Preferred:</span>
-            {DAYS.map((d, i) => (
-              <Chip key={d} on={prefDays.includes(i)} onClick={() => setPrefDays((x) => (x.includes(i) ? x.filter((y) => y !== i) : [...x, i]))}>
-                {d}
-              </Chip>
-            ))}
-            <span className="mx-1 h-5 w-px bg-slate-200" />
-            {TIME_WINDOWS.map((w) => (
-              <Chip key={w.key} on={prefWindows.includes(w.key)} onClick={() => setPrefWindows((x) => (x.includes(w.key) ? x.filter((y) => y !== w.key) : [...x, w.key]))}>
-                {w.label}
-              </Chip>
-            ))}
-            <label className="ml-auto flex items-center gap-2">
-              <input type="checkbox" checked={onlyPreferred} onChange={(e) => setOnlyPreferred(e.target.checked)} /> Only show preferred
+          {plan.kind === "single" && (
+            <p className="text-sm text-stone-600">
+              <span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-coral-400 align-middle" /> Times marked “Save {money(props.neighborhoodDiscountCents)}” are right next to another lesson
+              nearby.
+            </p>
+          )}
+
+          <details className="group rounded-2xl bg-white px-4 py-3 text-sm">
+            <summary className="cursor-pointer list-none font-medium text-stone-700">
+              Filter by day or time of day <span className="text-stone-400 group-open:hidden">+</span>
+            </summary>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {DAYS.map((d, i) => (
+                <Chip key={d} on={prefDays.includes(i)} onClick={() => setPrefDays((x) => (x.includes(i) ? x.filter((y) => y !== i) : [...x, i]))}>
+                  {d}
+                </Chip>
+              ))}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {TIME_WINDOWS.map((w) => (
+                <Chip key={w.key} on={prefWindows.includes(w.key)} onClick={() => setPrefWindows((x) => (x.includes(w.key) ? x.filter((y) => y !== w.key) : [...x, w.key]))}>
+                  {w.label}
+                </Chip>
+              ))}
+            </div>
+            <label className="mt-3 flex items-center gap-2 text-stone-600">
+              <input type="checkbox" className="accent-brand-600" checked={onlyPreferred} onChange={(e) => setOnlyPreferred(e.target.checked)} /> Hide other times
             </label>
-          </div>
+          </details>
 
           <div className={slotsLoading ? "opacity-50" : ""}>
             <WeekCalendar
@@ -512,120 +507,137 @@ export function BookingWizard(props: WizardProps) {
               suggested={suggested}
               selected={slot?.start ?? null}
               onSelect={setSlot}
-              neighborhoodDiscountLabel={plan.kind === "single" ? `−${money(props.neighborhoodDiscountCents)} nearby` : "nearby"}
+              neighborhoodDiscountLabel={plan.kind === "single" ? `Save ${money(props.neighborhoodDiscountCents)}` : ""}
             />
           </div>
-          {!slotsLoading && slots.length === 0 && <p className="text-sm text-slate-500">No openings this week{onlyPreferred ? " at your preferred times" : ""}. Try later dates{instructorId ? " or “First available”" : ""}.</p>}
-          <button
-            className="btn-primary"
-            disabled={!slot}
-            onClick={() => {
-              setQuote(null);
-              setStep(5);
-              refreshQuote();
-            }}
-          >
-            Continue
-          </button>
+          {!slotsLoading && slots.length === 0 && (
+            <p className="text-sm text-stone-500">Nothing open this week{onlyPreferred ? " at those times" : ""}. Try the next week{instructorId ? " or “Whoever's available”" : ""}.</p>
+          )}
+          <Actions onBack={back} primary={slot ? `Continue · ${whenShort.format(new Date(slot.start))}` : "Pick a time"} disabled={!slot} onPrimary={goToReview} />
         </section>
       )}
 
       {step === 5 && slot && zone && duration && (
-        <section className="grid gap-6 lg:grid-cols-3">
-          <div className="card space-y-3 lg:col-span-2">
-            <h2 className="text-xl font-semibold">Review &amp; pay</h2>
-            <dl className="grid grid-cols-3 gap-y-2 text-sm">
-              <dt className="text-slate-500">When</dt>
-              <dd className="col-span-2 font-medium">
+        <section className="space-y-5">
+          <Heading title="Look good?" />
+          <div className="grid gap-4 lg:grid-cols-5">
+            <div className="card space-y-4 lg:col-span-3">
+              <p className="font-display text-xl font-semibold">
                 {whenFmt.format(new Date(slot.start))}
-                {weeks ? `, then weekly for ${weeks} weeks` : ""}
-              </dd>
-              <dt className="text-slate-500">Length</dt>
-              <dd className="col-span-2">{duration} minutes</dd>
-              <dt className="text-slate-500">Swimmers</dt>
-              <dd className="col-span-2">{children.filter((c) => childIds.includes(c.id)).map((c) => c.firstName).join(", ")}</dd>
-              <dt className="text-slate-500">Where</dt>
-              <dd className="col-span-2">
-                {address.line1}
-                {address.line2 ? `, ${address.line2}` : ""}, {address.city} (Zone {zone.code})
-              </dd>
-              <dt className="text-slate-500">Instructor</dt>
-              <dd className="col-span-2">{instructorId ? chosenInstructor?.firstName : `First available${chosenInstructor ? ` (likely ${chosenInstructor.firstName})` : ""}`}</dd>
-            </dl>
-            <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
-              <p>
-                <strong>What happens next:</strong> your instructor confirms within {props.bookingRequestWindowHours} hours. If they can&apos;t, we offer your lesson to the next best
-                instructor automatically.
+                {weeks ? <span className="block text-base font-normal text-stone-600">and every week after, {weeks} lessons total</span> : null}
               </p>
-              <p className="mt-1">
-                <strong>Cancellation:</strong> free cancellation or rescheduling up to {props.cancellationWindowHours} hours before a lesson.
+              <ul className="space-y-1.5 text-sm text-stone-700">
+                <li>
+                  {duration} minutes with {swimmerNames.join(" & ")}
+                </li>
+                <li>
+                  {instructorId ? `With ${chosenInstructor?.firstName}` : chosenInstructor ? `Probably with ${chosenInstructor.firstName}` : "Instructor confirmed shortly"}
+                </li>
+                <li>
+                  {address.line1}
+                  {address.line2 ? `, ${address.line2}` : ""}, {address.city}
+                </li>
+              </ul>
+              <p className="rounded-xl bg-sand p-3 text-sm text-stone-600">
+                Your instructor confirms within {props.bookingRequestWindowHours} hours. Need to change plans? Cancel or reschedule free up to {props.cancellationWindowHours} hours before.
               </p>
             </div>
-          </div>
 
-          <div className="card space-y-3">
-            <h3 className="font-semibold">Price</h3>
-            {quote ? (
-              <>
-                <ul className="space-y-1 text-sm">
-                  {quote.lines.map((l, i) => (
-                    <li key={i} className="flex justify-between gap-2">
-                      <span className="text-slate-600">{l.label}</span>
-                      <span className={l.cents < 0 ? "text-emerald-700" : ""}>{l.cents < 0 ? `−${money(-l.cents)}` : money(l.cents)}</span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="flex justify-between border-t border-slate-200 pt-2 text-lg font-semibold">
-                  <span>Total</span>
-                  <span>{money(quote.totalCents)}</span>
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-slate-500">Calculating…</p>
-            )}
-            {plan.kind !== "package_credit" && (
-              <div className="flex gap-2">
-                <input className="input" placeholder="Promo code" value={promo} onChange={(e) => setPromo(e.target.value.toUpperCase())} />
-                <button className="btn-secondary" disabled={pending || !promo} onClick={refreshQuote}>
-                  Apply
-                </button>
-              </div>
-            )}
-            {quote?.promoMessage && <p className="text-sm text-red-600">{quote.promoMessage}</p>}
-            <button className="btn-primary w-full" disabled={pending || !quote} onClick={pay}>
-              {pending ? "One moment…" : quote?.totalCents === 0 ? "Confirm booking" : "Continue to secure payment"}
-            </button>
-            <p className="text-center text-xs text-slate-400">Payments are processed by Stripe. We never see your card number.</p>
+            <div className="card space-y-3 lg:col-span-2">
+              {quote ? (
+                <>
+                  <ul className="space-y-1.5 text-sm">
+                    {quote.lines.map((l, i) => (
+                      <li key={i} className="flex justify-between gap-3">
+                        <span className="text-stone-600">{l.label}</span>
+                        <span className={l.cents < 0 ? "text-brand-700" : ""}>{l.cents < 0 ? `−${money(-l.cents)}` : money(l.cents)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="flex justify-between border-t border-stone-100 pt-3 font-display text-xl font-semibold">
+                    <span>Total</span>
+                    <span>{money(quote.totalCents)}</span>
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-stone-500">Working out the price…</p>
+              )}
+              {plan.kind !== "package_credit" && (
+                <details className="text-sm">
+                  <summary className="cursor-pointer text-stone-500">Have a promo code?</summary>
+                  <div className="mt-2 flex gap-2">
+                    <input className="input" placeholder="Code" value={promo} onChange={(e) => setPromo(e.target.value.toUpperCase())} />
+                    <button className="btn-secondary" disabled={pending || !promo} onClick={refreshQuote}>
+                      Apply
+                    </button>
+                  </div>
+                  {quote?.promoMessage && <p className="mt-1 text-coral-700">{quote.promoMessage}</p>}
+                </details>
+              )}
+            </div>
           </div>
+          <Actions
+            onBack={back}
+            primary={pending ? "One moment…" : quote?.totalCents === 0 ? "Confirm booking" : quote ? `Pay ${money(quote.totalCents)}` : "Pay"}
+            disabled={pending || !quote}
+            onPrimary={pay}
+            note="Secure checkout by Stripe"
+          />
         </section>
-      )}
-
-      {step > 0 && step < 5 && (
-        <button className="mt-6 text-sm text-slate-500 underline" onClick={() => setStep(step - 1)}>
-          ← Back
-        </button>
       )}
     </div>
   );
 }
 
-function PlanOption({ title, quote, note, selected, onClick }: { title: string; quote: Quote | undefined; note: string; selected: boolean; onClick: () => void }) {
+function Heading({ title, sub }: { title: string; sub?: string }) {
   return (
-    <button onClick={onClick} className={`rounded-xl border bg-white p-4 text-left ${selected ? "border-sky-500 ring-2 ring-sky-200" : "border-slate-200"}`}>
-      <span className="block font-semibold">{title}</span>
+    <div>
+      <h2 className="text-2xl font-semibold sm:text-3xl">{title}</h2>
+      {sub && <p className="mt-1 text-stone-600">{sub}</p>}
+    </div>
+  );
+}
+
+/** Back / Continue. Pinned to the bottom of the screen on phones so it's always in reach. */
+function Actions({ onBack, primary, onPrimary, disabled, note }: { onBack?: () => void; primary: string; onPrimary: () => void; disabled?: boolean; note?: string }) {
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200/70 bg-sand/95 px-5 py-3 backdrop-blur lg:static lg:border-0 lg:bg-transparent lg:p-0 lg:pt-2">
+      <div className="mx-auto flex max-w-3xl items-center gap-3 lg:max-w-none">
+        {onBack && (
+          <button className="btn-secondary px-4" onClick={onBack} aria-label="Back">
+            ←
+          </button>
+        )}
+        <button className="btn-primary flex-1 py-3 text-base lg:flex-none lg:px-8" disabled={disabled} onClick={onPrimary}>
+          {primary}
+        </button>
+        {note && <span className="hidden text-xs text-stone-400 sm:inline">{note}</span>}
+      </div>
+    </div>
+  );
+}
+
+function PlanOption({ title, tag, quote, note, selected, onClick }: { title: string; tag?: string; quote?: Quote; note?: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className={`flex w-full items-center justify-between gap-3 rounded-2xl border-2 bg-white px-4 py-3.5 text-left transition ${selected ? "border-brand-500" : "border-transparent"}`}>
+      <span>
+        <span className="font-medium text-stone-900">{title}</span>
+        {tag && <span className="badge ml-2 bg-coral-50 text-coral-700">{tag}</span>}
+        {note && <span className="block text-sm text-stone-500">{note}</span>}
+      </span>
       {quote && (
-        <span className="mt-1 block text-sm text-slate-700">
-          {quote.lessonCount > 1 ? `${money(quote.perLesson.totalCents)}/lesson · ${money(quote.totalCents)} total` : `${money(quote.totalCents)}`}
+        <span className="shrink-0 text-right">
+          <span className="block font-semibold text-stone-900">{money(quote.totalCents)}</span>
+          {quote.lessonCount > 1 && <span className="block text-xs text-stone-500">{money(quote.perLesson.totalCents)} each</span>}
         </span>
       )}
-      <span className="mt-1 block text-xs text-slate-500">{note}</span>
     </button>
   );
 }
 
 function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className={`rounded-full border px-2.5 py-0.5 ${on ? "border-sky-500 bg-sky-50 text-sky-800" : "border-slate-200 text-slate-600"}`} aria-pressed={on}>
+    <button type="button" onClick={onClick} className={`rounded-full px-3 py-1 ${on ? "bg-brand-600 text-white" : "bg-sand text-stone-600"}`} aria-pressed={on}>
       {children}
     </button>
   );

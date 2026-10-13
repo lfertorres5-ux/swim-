@@ -61,7 +61,7 @@ export default async function SchedulingPreview({ searchParams }: PageProps<"/ad
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Scheduling preview</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-stone-500">
           What a family would see. Slots respect weekly hours, overrides, existing lessons and zone-to-zone travel time.
           The <span className="badge bg-emerald-100 text-emerald-800">Neighborhood</span> badge marks slots next to a lesson in
           the same zone; they get the neighborhood discount.
@@ -118,7 +118,7 @@ export default async function SchedulingPreview({ searchParams }: PageProps<"/ad
         <Field label="Days">
           <input type="number" name="days" min={1} max={31} defaultValue={days} className="input" />
         </Field>
-        <label className="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2">
+        <label className="flex items-center gap-2 text-sm text-stone-700 sm:col-span-2">
           <input type="checkbox" name="ignoreNotice" defaultChecked={ignoreNotice} /> Ignore minimum notice (admin booking)
         </label>
         <button className="btn-primary sm:col-span-2">Find slots</button>
@@ -134,14 +134,14 @@ export default async function SchedulingPreview({ searchParams }: PageProps<"/ad
               {result.suggested.map((s) => (
                 <SlotChip key={s.start} slot={s} names={names} showDate />
               ))}
-              {!result.suggested.length && <p className="text-sm text-slate-500">No availability in this range.</p>}
+              {!result.suggested.length && <p className="text-sm text-stone-500">No availability in this range.</p>}
             </div>
           </section>
 
           <section className="space-y-3">
             {[...byDate.entries()].map(([date, slots]) => (
               <div key={date} className="card">
-                <h3 className="text-sm font-semibold text-slate-700">{formatDate(`${date}T12:00:00Z`, { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" })}</h3>
+                <h3 className="text-sm font-semibold text-stone-700">{formatDate(`${date}T12:00:00Z`, { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" })}</h3>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {slots.map((s) => (
                     <SlotChip key={s.start} slot={s} names={names} />
@@ -158,7 +158,7 @@ export default async function SchedulingPreview({ searchParams }: PageProps<"/ad
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+    <label className="flex flex-col gap-1 text-sm font-medium text-stone-700">
       {label}
       {children}
     </label>
@@ -173,12 +173,12 @@ function SlotChip({ slot, names, showDate }: { slot: SlotResult["slots"][number]
   return (
     <span
       title={explanation}
-      className={`rounded-lg border px-2.5 py-1.5 text-sm ${slot.isNeighborhoodSlot ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white"}`}
+      className={`rounded-lg border px-2.5 py-1.5 text-sm ${slot.isNeighborhoodSlot ? "border-emerald-300 bg-emerald-50" : "border-stone-200 bg-white"}`}
     >
-      {showDate && <span className="mr-1 text-slate-500">{formatDate(new Date(slot.start))}</span>}
+      {showDate && <span className="mr-1 text-stone-500">{formatDate(new Date(slot.start))}</span>}
       <span className="font-medium">{formatTime(new Date(slot.start))}</span>
-      <span className="ml-1 text-slate-500">· {names.get(best.instructorId)}</span>
-      {slot.candidates.length > 1 && <span className="ml-1 text-xs text-slate-400">+{slot.candidates.length - 1}</span>}
+      <span className="ml-1 text-stone-500">· {names.get(best.instructorId)}</span>
+      {slot.candidates.length > 1 && <span className="ml-1 text-xs text-stone-400">+{slot.candidates.length - 1}</span>}
       {slot.isNeighborhoodSlot && <span className="badge ml-2 bg-emerald-100 text-emerald-800">Neighborhood</span>}
     </span>
   );

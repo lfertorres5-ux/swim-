@@ -35,12 +35,12 @@ export function ServiceAreaMap({ zones }: { zones: MapZone[] }) {
         {drawn.map((z) => {
           const [x, y] = pt(labelAt(z.boundary!)).split(",").map(Number);
           return (
-            <text key={z.code} x={x} y={y} textAnchor="middle" className="fill-slate-800 text-[12px] font-semibold">
+            <text key={z.code} x={x} y={y} textAnchor="middle" className="fill-stone-800 text-[12px] font-semibold">
               Zone {z.code}
             </text>
           );
         })}
-        <text x={PAD + 4} y={H - PAD} className="fill-slate-400 text-[11px]">
+        <text x={PAD + 4} y={H - PAD} className="fill-stone-400 text-[11px]">
           San Diego County · Pacific Ocean ←
         </text>
       </svg>
@@ -50,7 +50,7 @@ export function ServiceAreaMap({ zones }: { zones: MapZone[] }) {
             <span className="mt-1 h-3 w-3 shrink-0 rounded-sm" style={{ background: z.color ?? "#0ea5e9" }} />
             <span>
               <strong>Zone {z.code}</strong> · {z.travelFeeCents ? `+$${z.travelFeeCents / 100} travel` : "no travel fee"}
-              <span className="block text-slate-500">{z.name}</span>
+              <span className="block text-stone-500">{z.name}</span>
             </span>
           </span>
         ))}

@@ -10,24 +10,24 @@ export function ContactCard({ title, people, note }: { title: string; people: Co
   return (
     <div className="card">
       <h2 className="font-semibold">{title}</h2>
-      <ul className="mt-2 divide-y divide-slate-100">
+      <ul className="mt-2 divide-y divide-stone-100">
         {people.map((p) => (
           <li key={`${p.name}-${p.email}`} className="py-2 text-sm">
             <p className="font-medium">{p.name}</p>
-            {p.detail && <p className="text-xs text-slate-500">{p.detail}</p>}
+            {p.detail && <p className="text-xs text-stone-500">{p.detail}</p>}
             <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
               {p.phone && (
-                <a className="text-sky-700 underline" href={`tel:${p.phone}`}>
+                <a className="text-brand-700 underline" href={`tel:${p.phone}`}>
                   {prettyPhone(p.phone)}
                 </a>
               )}
               {p.phone && (
-                <a className="text-sky-700 underline" href={`sms:${p.phone}`}>
+                <a className="text-brand-700 underline" href={`sms:${p.phone}`}>
                   Text
                 </a>
               )}
               {p.email && (
-                <a className="text-sky-700 underline" href={`mailto:${p.email}`}>
+                <a className="text-brand-700 underline" href={`mailto:${p.email}`}>
                   {p.email}
                 </a>
               )}
@@ -35,7 +35,7 @@ export function ContactCard({ title, people, note }: { title: string; people: Co
           </li>
         ))}
       </ul>
-      {note && <p className="mt-2 text-xs text-slate-500">{note}</p>}
+      {note && <p className="mt-2 text-xs text-stone-500">{note}</p>}
     </div>
   );
 }

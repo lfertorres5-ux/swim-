@@ -33,7 +33,7 @@ export default async function DevCheckout({ searchParams }: PageProps<"/dev/chec
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-4 px-6 py-16">
       <p className="badge w-fit bg-amber-100 text-amber-800">Development mode — no real payment</p>
       <h1 className="text-2xl font-semibold">{formatCents(payment.amount_cents)}</h1>
-      <p className="text-slate-600">{payment.description}</p>
+      <p className="text-stone-600">{payment.description}</p>
       {payment.status === "pending" ? (
         <div className="flex gap-3">
           <form action={pay}>
@@ -44,7 +44,7 @@ export default async function DevCheckout({ searchParams }: PageProps<"/dev/chec
           </form>
         </div>
       ) : (
-        <p className="text-slate-600">This checkout is {payment.status}.</p>
+        <p className="text-stone-600">This checkout is {payment.status}.</p>
       )}
     </main>
   );

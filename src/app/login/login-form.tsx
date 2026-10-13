@@ -8,7 +8,7 @@ export function LoginForm({ next }: { next: string }) {
 
   if (state.status === "sent") {
     return (
-      <div className="rounded-xl border border-sky-200 bg-sky-50 p-5 text-sky-900" role="status">
+      <div className="rounded-xl border border-brand-200 bg-brand-50 p-5 text-brand-900" role="status">
         <p className="font-medium">Check your inbox</p>
         <p className="mt-1 text-sm">
           We sent a sign-in link to <strong>{state.email}</strong>. It expires in one hour.
@@ -26,13 +26,13 @@ export function LoginForm({ next }: { next: string }) {
         </button>
       </form>
 
-      <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-slate-400">
-        <span className="h-px flex-1 bg-slate-200" /> or <span className="h-px flex-1 bg-slate-200" />
+      <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-stone-400">
+        <span className="h-px flex-1 bg-stone-200" /> or <span className="h-px flex-1 bg-stone-200" />
       </div>
 
       <form action={formAction} className="flex flex-col gap-3">
         <input type="hidden" name="next" value={next} />
-        <label htmlFor="email" className="text-sm font-medium text-slate-700">
+        <label htmlFor="email" className="text-sm font-medium text-stone-700">
           Email
         </label>
         <input

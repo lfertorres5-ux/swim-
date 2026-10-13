@@ -34,7 +34,7 @@ export default async function AvailabilityPage({ searchParams }: PageProps<"/ins
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold">Availability</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-stone-500">
           All times are San Diego time. Families can only book inside these hours, with travel time kept between lessons
           automatically. Changing your hours never cancels lessons that are already booked.
         </p>
@@ -47,16 +47,16 @@ export default async function AvailabilityPage({ searchParams }: PageProps<"/ins
           {WEEKDAYS.map((day, weekday) => {
             const blocks = (rules ?? []).filter((r) => r.weekday === weekday);
             return (
-              <div key={day} className="rounded-xl border border-slate-200 p-3">
-                <p className="text-sm font-semibold text-slate-700">{day}</p>
-                {blocks.length === 0 && <p className="mt-1 text-sm text-slate-400">Unavailable</p>}
+              <div key={day} className="rounded-xl border border-stone-200 p-3">
+                <p className="text-sm font-semibold text-stone-700">{day}</p>
+                {blocks.length === 0 && <p className="mt-1 text-sm text-stone-400">Unavailable</p>}
                 <ul className="mt-1 space-y-1">
                   {blocks.map((r) => (
-                    <li key={r.id} className="flex items-center justify-between rounded-lg bg-sky-50 px-2 py-1 text-sm text-sky-900">
+                    <li key={r.id} className="flex items-center justify-between rounded-lg bg-brand-50 px-2 py-1 text-sm text-brand-900">
                       {label(r.start_time)} – {label(r.end_time)}
                       <form action={removeWeeklyHours}>
                         <input type="hidden" name="id" value={r.id} />
-                        <button className="text-sky-700 hover:text-red-600" aria-label={`Remove ${day} ${label(r.start_time)}`}>×</button>
+                        <button className="text-brand-700 hover:text-red-600" aria-label={`Remove ${day} ${label(r.start_time)}`}>×</button>
                       </form>
                     </li>
                   ))}
@@ -66,12 +66,12 @@ export default async function AvailabilityPage({ searchParams }: PageProps<"/ins
           })}
         </div>
 
-        <form action={addWeeklyHours} className="mt-5 flex flex-wrap items-end gap-4 border-t border-slate-100 pt-4">
+        <form action={addWeeklyHours} className="mt-5 flex flex-wrap items-end gap-4 border-t border-stone-100 pt-4">
           <fieldset>
-            <legend className="text-sm font-medium text-slate-700">Days</legend>
+            <legend className="text-sm font-medium text-stone-700">Days</legend>
             <div className="mt-1 flex flex-wrap gap-2">
               {WEEKDAYS.map((day, i) => (
-                <label key={day} className="flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-sm">
+                <label key={day} className="flex items-center gap-1 rounded-lg border border-stone-200 px-2 py-1 text-sm">
                   <input type="checkbox" name="weekday" value={i} /> {day.slice(0, 3)}
                 </label>
               ))}
@@ -85,49 +85,49 @@ export default async function AvailabilityPage({ searchParams }: PageProps<"/ins
 
       <section className="card">
         <h2 className="font-semibold">Date overrides & blackout dates</h2>
-        <ul className="mt-3 divide-y divide-slate-100">
+        <ul className="mt-3 divide-y divide-stone-100">
           {(overrides ?? []).map((o) => (
             <li key={o.id} className="flex items-center justify-between py-2 text-sm">
               <span>
-                <span className={`badge mr-2 ${o.kind === "blackout" ? "bg-slate-200 text-slate-700" : "bg-green-100 text-green-800"}`}>
+                <span className={`badge mr-2 ${o.kind === "blackout" ? "bg-stone-200 text-stone-700" : "bg-green-100 text-green-800"}`}>
                   {o.kind === "blackout" ? "Off" : "Extra hours"}
                 </span>
                 {formatDate(`${o.date}T12:00:00Z`, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })}
                 {o.start_time ? ` · ${label(o.start_time)} – ${label(o.end_time!)}` : " · all day"}
-                {o.note && <span className="text-slate-500"> — {o.note}</span>}
+                {o.note && <span className="text-stone-500"> — {o.note}</span>}
               </span>
               <form action={removeDateOverride}>
                 <input type="hidden" name="id" value={o.id} />
-                <button className="text-slate-500 hover:text-red-600">Remove</button>
+                <button className="text-stone-500 hover:text-red-600">Remove</button>
               </form>
             </li>
           ))}
-          {!overrides?.length && <li className="py-2 text-sm text-slate-400">No upcoming changes.</li>}
+          {!overrides?.length && <li className="py-2 text-sm text-stone-400">No upcoming changes.</li>}
         </ul>
 
-        <form action={addDateOverride} className="mt-4 grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-6 sm:items-end">
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
+        <form action={addDateOverride} className="mt-4 grid gap-4 border-t border-stone-100 pt-4 sm:grid-cols-6 sm:items-end">
+          <label className="flex flex-col gap-1 text-sm font-medium text-stone-700 sm:col-span-2">
             Type
             <select name="kind" className="input" defaultValue="blackout">
               <option value="blackout">Time off (blackout)</option>
               <option value="available">Extra hours</option>
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+          <label className="flex flex-col gap-1 text-sm font-medium text-stone-700">
             Date
             <input type="date" name="date" min={today} required className="input" />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-            Through <span className="font-normal text-slate-500">(time off)</span>
+          <label className="flex flex-col gap-1 text-sm font-medium text-stone-700">
+            Through <span className="font-normal text-stone-500">(time off)</span>
             <input type="date" name="endDate" min={today} className="input" />
           </label>
           <TimeSelect name="start" label="From" defaultValue="09:00" />
           <TimeSelect name="end" label="To" defaultValue="12:00" />
-          <label className="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2">
+          <label className="flex items-center gap-2 text-sm text-stone-700 sm:col-span-2">
             <input type="checkbox" name="wholeDay" defaultChecked /> Whole day (time off only)
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 sm:col-span-3">
-            Note <span className="font-normal text-slate-500">(only you and the owner see this)</span>
+          <label className="flex flex-col gap-1 text-sm font-medium text-stone-700 sm:col-span-3">
+            Note <span className="font-normal text-stone-500">(only you and the owner see this)</span>
             <input name="note" maxLength={200} className="input" />
           </label>
           <button className="btn-primary">Add</button>
@@ -138,12 +138,12 @@ export default async function AvailabilityPage({ searchParams }: PageProps<"/ins
         <h2 className="font-semibold">Zones you&apos;ll travel to</h2>
         <form action={saveZones} className="mt-3 space-y-2">
           {(zones ?? []).map((z) => (
-            <label key={z.id} className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm">
+            <label key={z.id} className="flex items-start gap-3 rounded-xl border border-stone-200 p-3 text-sm">
               <input type="checkbox" name="zoneId" value={z.id} defaultChecked={covered.has(z.id)} className="mt-1" />
               <span>
                 <span className="font-medium">Zone {z.code} · {z.name}</span>
-                <span className="block text-slate-500">{z.description}</span>
-                <span className="block text-xs text-slate-400">
+                <span className="block text-stone-500">{z.description}</span>
+                <span className="block text-xs text-stone-400">
                   {z.travel_fee_cents ? `Families pay a ${formatCents(z.travel_fee_cents)} travel fee` : "No travel fee"}
                   {z.min_booking_minutes ? ` · ${z.min_booking_minutes}-minute minimum booking` : ""}
                 </span>
@@ -159,7 +159,7 @@ export default async function AvailabilityPage({ searchParams }: PageProps<"/ins
 
 function TimeSelect({ name, label: text, defaultValue }: { name: string; label: string; defaultValue: string }) {
   return (
-    <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+    <label className="flex flex-col gap-1 text-sm font-medium text-stone-700">
       {text}
       <select name={name} defaultValue={defaultValue} className="input">
         {TIME_OPTIONS.map((t) => (

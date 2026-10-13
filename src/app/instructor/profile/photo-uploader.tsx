@@ -34,18 +34,18 @@ export function PhotoUploader({ userId, currentUrl, firstName }: { userId: strin
 
   return (
     <div className="flex items-center gap-4">
-      <div className="relative h-24 w-24 overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200">
+      <div className="relative h-24 w-24 overflow-hidden rounded-full bg-stone-100 ring-1 ring-stone-200">
         {preview ? (
           <Image src={preview} alt={`Photo of ${firstName}`} fill sizes="96px" className="object-cover" unoptimized />
         ) : (
-          <span className="flex h-full items-center justify-center text-xs text-slate-400">No photo</span>
+          <span className="flex h-full items-center justify-center text-xs text-stone-400">No photo</span>
         )}
       </div>
       <div>
         <button type="button" className="btn-secondary" disabled={pending} onClick={() => input.current?.click()}>
           {pending ? "Uploading…" : preview ? "Change photo" : "Upload photo"}
         </button>
-        <p className="mt-1 text-xs text-slate-500">A friendly, clear photo of your face. Families see this when choosing an instructor.</p>
+        <p className="mt-1 text-xs text-stone-500">A friendly, clear photo of your face. Families see this when choosing an instructor.</p>
         {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
         <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
       </div>

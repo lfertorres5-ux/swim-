@@ -34,11 +34,11 @@ export default async function AdminHome() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">Dashboard</h1>
-      <p className="mt-1 text-sm text-slate-500">Full admin tools (instructors, pricing, zones, refunds, sub board) arrive in Phase 5.</p>
+      <p className="mt-1 text-sm text-stone-500">Full admin tools (instructors, pricing, zones, refunds, sub board) arrive in Phase 5.</p>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {tiles.map((t) => (
           <div key={t.label} className={`card ${t.alert ? "border-amber-300 bg-amber-50" : ""}`}>
-            <p className="text-sm text-slate-500">{t.label}</p>
+            <p className="text-sm text-stone-500">{t.label}</p>
             <p className="mt-1 text-3xl font-semibold">{t.value}</p>
           </div>
         ))}

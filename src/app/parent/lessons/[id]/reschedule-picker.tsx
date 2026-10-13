@@ -45,8 +45,8 @@ export function ReschedulePicker({ bookingId, today, instructorName }: { booking
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-600">
-          {instructorName ? `Times marked “Recommended” keep ${instructorName}. Other times may be with another instructor.` : "Pick a new time."}
+        <p className="text-sm text-stone-600">
+          {instructorName ? `Times with a dot are with ${instructorName}. Others may be with a different instructor.` : "Pick a new time."}
         </p>
         <div className="flex gap-2">
           <button className="btn-secondary" disabled={from <= addDays(today, 1) || loading} onClick={() => setFrom(addDays(from, -7))}>
@@ -58,7 +58,7 @@ export function ReschedulePicker({ bookingId, today, instructorName }: { booking
         </div>
       </div>
       <div className={loading ? "opacity-50" : ""}>
-        <WeekCalendar fromDate={from} slots={data?.slots ?? []} suggested={[...same]} selected={selected?.start ?? null} onSelect={setSelected} neighborhoodDiscountLabel="" compact />
+        <WeekCalendar fromDate={from} slots={data?.slots ?? []} suggested={[...same]} selected={selected?.start ?? null} onSelect={setSelected} neighborhoodDiscountLabel="" compact markSuggested />
       </div>
       {message && <p className="text-sm text-red-600">{message}</p>}
       <button
@@ -67,7 +67,7 @@ export function ReschedulePicker({ bookingId, today, instructorName }: { booking
         onClick={() =>
           startTransition(async () => {
             const r = await rescheduleLessonAction(bookingId, selected!.start);
-            setMessage(r.ok ? (r.keptInstructor ? "Rescheduled ✓" : "Rescheduled — we're confirming an instructor for the new time.") : (r.error ?? "Couldn't reschedule"));
+            setMessage(r.ok ? (r.keptInstructor ? "Done — your lesson has moved." : "Rescheduled — we're confirming an instructor for the new time.") : (r.error ?? "Couldn't reschedule"));
             if (r.ok) setOpen(false);
           })
         }

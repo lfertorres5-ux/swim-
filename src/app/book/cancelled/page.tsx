@@ -16,7 +16,7 @@ export default async function CheckoutCancelled({ searchParams }: PageProps<"/bo
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-4 px-6 py-16">
       <h1 className="text-2xl font-semibold">Payment cancelled</h1>
-      <p className="text-slate-600">No charge was made and the time you picked has been released.</p>
+      <p className="text-stone-600">No charge was made and the time you picked has been released.</p>
       <Link href="/book" className="btn-primary w-fit">
         Start over
       </Link>

@@ -69,12 +69,12 @@ export function AddressAutocomplete({ apiKey, onPick }: { apiKey: string; onPick
         aria-label="Street address"
       />
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+        <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-stone-200 bg-white shadow-lg">
           {suggestions.map((s) => (
             <li key={s.placeId}>
               <button
                 type="button"
-                className="block w-full px-3 py-2 text-left text-sm hover:bg-sky-50"
+                className="block w-full px-3 py-2 text-left text-sm hover:bg-brand-50"
                 onClick={() => {
                   setQuery(`${s.main}, ${s.secondary}`);
                   setOpen(false);
@@ -82,7 +82,7 @@ export function AddressAutocomplete({ apiKey, onPick }: { apiKey: string; onPick
                   onPick({ placeId: s.placeId, line1: s.main, description: `${s.main}, ${s.secondary}` });
                 }}
               >
-                <span className="font-medium">{s.main}</span> <span className="text-slate-500">{s.secondary}</span>
+                <span className="font-medium">{s.main}</span> <span className="text-stone-500">{s.secondary}</span>
               </button>
             </li>
           ))}

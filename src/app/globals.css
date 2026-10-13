@@ -1,8 +1,36 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
+}
+
+@theme {
+  /* Ocean teal — primary actions and links */
+  --color-brand-50: #eef8f7;
+  --color-brand-100: #d4eeec;
+  --color-brand-200: #abdcd9;
+  --color-brand-300: #78c2c0;
+  --color-brand-400: #47a2a3;
+  --color-brand-500: #2e8689;
+  --color-brand-600: #236c71;
+  --color-brand-700: #1f585d;
+  --color-brand-800: #1d494d;
+  --color-brand-900: #1b3e42;
+  --color-brand-950: #0c2527;
+
+  /* Coral — warm accents (badges, highlights) */
+  --color-coral-50: #fff5f1;
+  --color-coral-100: #ffe5db;
+  --color-coral-200: #ffc8b4;
+  --color-coral-400: #f5936f;
+  --color-coral-500: #ec7550;
+  --color-coral-600: #d65b37;
+  --color-coral-700: #b2462a;
+
+  /* Warm page background */
+  --color-sand: #faf6ef;
+  --color-sand-dark: #f2ebdf;
 }
 
 :root {
@@ -10,23 +38,29 @@
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-sand text-stone-800 antialiased;
+}
+
+h1,
+h2,
+h3 {
+  @apply font-display tracking-tight text-stone-900;
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-stone-300 bg-white px-5 py-2.5 text-sm font-semibold text-stone-800 transition hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:opacity-50;
   }
   .input {
-    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-200 focus:outline-none;
+    @apply w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-base placeholder:text-stone-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none sm:text-sm;
   }
   .card {
-    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
+    @apply rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(60,40,20,0.06),0_4px_16px_rgba(60,40,20,0.04)];
   }
   .badge {
-    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
 }

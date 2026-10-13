@@ -23,12 +23,12 @@ export function ProfileForm({ defaults }: { defaults: ProfileDefaults }) {
 
   return (
     <form action={action} className="flex flex-col gap-5">
-      <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-        First name <span className="font-normal text-slate-500">(families only ever see your first name)</span>
+      <label className="flex flex-col gap-1 text-sm font-medium text-stone-700">
+        First name <span className="font-normal text-stone-500">(families only ever see your first name)</span>
         <input name="firstName" required maxLength={30} defaultValue={defaults.firstName} className="input max-w-xs" />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+      <label className="flex flex-col gap-1 text-sm font-medium text-stone-700">
         Bio
         <textarea
           name="bio"
@@ -41,11 +41,11 @@ export function ProfileForm({ defaults }: { defaults: ProfileDefaults }) {
           className="input"
           placeholder="Your experience, teaching style, and what families can expect. Don't include contact details or links."
         />
-        <span className={`text-xs ${bio.trim().length < 40 ? "text-amber-700" : "text-slate-500"}`}>{bio.trim().length} / 1,200 (minimum 40)</span>
+        <span className={`text-xs ${bio.trim().length < 40 ? "text-amber-700" : "text-stone-500"}`}>{bio.trim().length} / 1,200 (minimum 40)</span>
       </label>
 
       <fieldset>
-        <legend className="text-sm font-medium text-slate-700">Specialties</legend>
+        <legend className="text-sm font-medium text-stone-700">Specialties</legend>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {SPECIALTIES.map((s) => (
             <label key={s.value} className="flex items-center gap-2 text-sm">
@@ -57,7 +57,7 @@ export function ProfileForm({ defaults }: { defaults: ProfileDefaults }) {
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm font-medium text-slate-700">Levels you teach</legend>
+        <legend className="text-sm font-medium text-stone-700">Levels you teach</legend>
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
           {SWIM_LEVELS.map((l) => (
             <label key={l} className="flex items-center gap-2 text-sm">
@@ -69,7 +69,7 @@ export function ProfileForm({ defaults }: { defaults: ProfileDefaults }) {
       </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+        <label className="flex flex-col gap-1 text-sm font-medium text-stone-700">
           Youngest swimmer
           <select name="minChildAgeMonths" defaultValue={defaults.minChildAgeMonths} className="input">
             {[...new Set([6, 12, 18, 24, 36, 48, 60, 72, defaults.minChildAgeMonths])].sort((a, b) => a - b).map((m) => (
@@ -79,22 +79,22 @@ export function ProfileForm({ defaults }: { defaults: ProfileDefaults }) {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+        <label className="flex flex-col gap-1 text-sm font-medium text-stone-700">
           Max swimmers per lesson
           <input type="number" name="maxChildrenPerLesson" min={1} max={8} defaultValue={defaults.maxChildrenPerLesson} className="input" />
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+        <label className="flex flex-col gap-1 text-sm font-medium text-stone-700">
           Years teaching
           <input type="number" name="yearsExperience" min={0} max={60} defaultValue={defaults.yearsExperience ?? ""} className="input" />
         </label>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-        Languages <span className="font-normal text-slate-500">(comma-separated)</span>
+      <label className="flex flex-col gap-1 text-sm font-medium text-stone-700">
+        Languages <span className="font-normal text-stone-500">(comma-separated)</span>
         <input name="languages" defaultValue={defaults.languages.join(", ")} className="input max-w-md" />
       </label>
 
-      <label className="flex items-center gap-2 text-sm text-slate-700">
+      <label className="flex items-center gap-2 text-sm text-stone-700">
         <input type="checkbox" name="isAcceptingNewClients" defaultChecked={defaults.isAcceptingNewClients} />
         Accepting new families (your current families can always rebook you)
       </label>

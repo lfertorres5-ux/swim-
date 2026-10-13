@@ -26,26 +26,26 @@ export default async function InstructorTermsPage({ searchParams }: PageProps<"/
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">
-      <h1 className="text-2xl font-semibold text-slate-900">{terms.title}</h1>
-      <p className="mt-1 text-sm text-slate-500">
+      <h1 className="text-2xl font-semibold text-stone-900">{terms.title}</h1>
+      <p className="mt-1 text-sm text-stone-500">
         Version {version} · effective {terms.effective}
       </p>
-      <p className="mt-4 text-slate-600">
+      <p className="mt-4 text-stone-600">
         You&apos;ll be able to see lessons and client details after you accept. Please read carefully.
       </p>
 
       <div className="card mt-6 max-h-[28rem] space-y-5 overflow-y-auto">
         {terms.sections.map((s) => (
           <section key={s.heading}>
-            <h2 className="font-semibold text-slate-900">{s.heading}</h2>
-            <p className="mt-1 text-sm leading-relaxed text-slate-700">{s.body}</p>
+            <h2 className="font-semibold text-stone-900">{s.heading}</h2>
+            <p className="mt-1 text-sm leading-relaxed text-stone-700">{s.body}</p>
           </section>
         ))}
       </div>
 
       <form action={acceptInstructorTerms} className="mt-6 flex flex-col gap-4">
         <input type="hidden" name="version" value={version} />
-        <label className="flex items-start gap-2 text-sm text-slate-700">
+        <label className="flex items-start gap-2 text-sm text-stone-700">
           <input type="checkbox" name="agree" required className="mt-1" />
           I have read and agree to the {terms.title}, including keeping all client information confidential and
           handling every payment through the platform.

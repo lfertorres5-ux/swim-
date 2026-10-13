@@ -39,23 +39,23 @@ export default async function ParentHome() {
     <div className="grid gap-6 lg:grid-cols-3">
       <section className="space-y-4 lg:col-span-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Hi {user.firstName ?? "there"} 👋</h1>
+          <h1 className="text-2xl font-semibold">Hi {user.firstName ?? "there"}</h1>
           <Link href="/book" className="btn-primary">
             Book a lesson
           </Link>
         </div>
-        <h2 className="font-semibold text-slate-700">Upcoming lessons</h2>
+        <h2 className="font-semibold text-stone-700">Upcoming lessons</h2>
         {upcoming?.length ? (
           <ul className="space-y-3">
             {upcoming.map((b) => {
-              const s = STATUS[b.status] ?? { label: b.status, cls: "bg-slate-100" };
+              const s = STATUS[b.status] ?? { label: b.status, cls: "bg-stone-100" };
               const kids = (b.booking_children ?? []).map((bc) => one(bc.child)?.first_name).filter(Boolean).join(", ");
               return (
                 <li key={b.id}>
-                  <Link href={`/parent/lessons/${b.id}`} className="card flex items-center justify-between hover:border-sky-300">
+                  <Link href={`/parent/lessons/${b.id}`} className="card flex items-center justify-between hover:border-brand-300">
                     <div>
                       <p className="font-medium">{formatDateTime(b.starts_at)}</p>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-stone-500">
                         {kids} · with {one(b.instructor)?.first_name ?? "your instructor (matching)"}
                         {b.kind === "recurring" ? " · weekly" : ""}
                       </p>
@@ -67,7 +67,7 @@ export default async function ParentHome() {
             })}
           </ul>
         ) : (
-          <p className="card text-slate-600">No upcoming lessons. Ready to get in the pool?</p>
+          <p className="card text-stone-600">Nothing on the calendar yet.</p>
         )}
       </section>
 
@@ -79,7 +79,7 @@ export default async function ParentHome() {
         />
         {favorite && (
           <div className="space-y-2">
-            <h2 className="font-semibold text-slate-700">Your favorite instructor</h2>
+            <h2 className="font-semibold text-stone-700">Your favorite instructor</h2>
             <InstructorCard instructor={favorite} favorite compact />
             <div className="flex gap-3 text-sm">
               <Link className="btn-secondary" href={`/book?instructor=${favorite.id}`}>
@@ -87,7 +87,7 @@ export default async function ParentHome() {
               </Link>
               <form action={toggleFavoriteAction}>
                 <input type="hidden" name="instructorId" value={favorite.id} />
-                <button className="text-slate-500 underline">Remove</button>
+                <button className="text-stone-500 underline">Remove</button>
               </form>
             </div>
           </div>
@@ -99,7 +99,7 @@ export default async function ParentHome() {
               {packages.map((p) => (
                 <li key={p.id}>
                   {p.lessons_remaining} of {p.lesson_count} × {p.duration_minutes}-min lessons left
-                  {p.expires_at && <span className="text-slate-500"> · use by {formatDate(p.expires_at)}</span>}
+                  {p.expires_at && <span className="text-stone-500"> · use by {formatDate(p.expires_at)}</span>}
                 </li>
               ))}
             </ul>
@@ -110,13 +110,13 @@ export default async function ParentHome() {
           <ul className="mt-2 space-y-3 text-sm">
             {(notes ?? []).map((n) => (
               <li key={n.id}>
-                <p className="text-xs text-slate-500">{one(n.booking) ? formatDate(one(n.booking)!.starts_at) : ""}</p>
-                <p className="text-slate-700">{n.summary}</p>
+                <p className="text-xs text-stone-500">{one(n.booking) ? formatDate(one(n.booking)!.starts_at) : ""}</p>
+                <p className="text-stone-700">{n.summary}</p>
               </li>
             ))}
-            {!notes?.length && <li className="text-slate-500">Your instructor&apos;s notes appear here after each lesson.</li>}
+            {!notes?.length && <li className="text-stone-500">Your instructor&apos;s notes appear here after each lesson.</li>}
           </ul>
-          <Link href="/parent/progress" className="mt-3 inline-block text-sm text-sky-700 underline">
+          <Link href="/parent/progress" className="mt-3 inline-block text-sm text-brand-700 underline">
             All progress notes
           </Link>
         </div>

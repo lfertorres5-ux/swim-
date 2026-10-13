@@ -20,7 +20,7 @@ export default async function InstructorProfilePage() {
   return (
     <div className="max-w-3xl">
       <h1 className="text-2xl font-semibold">Your profile</h1>
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-sm text-stone-500">
         A first name, photo and bio are required before families can see and book you.
       </p>
       <div className="card mt-6">

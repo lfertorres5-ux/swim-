@@ -43,8 +43,8 @@ export default async function BookingConfirmed({ searchParams }: PageProps<"/par
 
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-6 py-16">
-      <h1 className="text-2xl font-semibold">You&apos;re booked! 🎉</h1>
-      <p className="mt-2 text-slate-600">We&apos;ve sent your request to your instructor. You&apos;ll get a confirmation as soon as they accept (usually within a few hours).</p>
+      <h1 className="text-2xl font-semibold">You&apos;re booked!</h1>
+      <p className="mt-2 text-stone-600">We&apos;ve sent your request to your instructor. You&apos;ll get a confirmation as soon as they accept (usually within a few hours).</p>
       <ul className="mt-6 space-y-2">
         {(lessons ?? []).map((l) => {
           const instructor = Array.isArray(l.instructor) ? l.instructor[0] : l.instructor;
@@ -54,7 +54,7 @@ export default async function BookingConfirmed({ searchParams }: PageProps<"/par
                 {formatDateTime(l.starts_at)}
                 {instructor ? ` · ${instructor.first_name}` : ""}
               </span>
-              <span className="badge bg-sky-50 text-sky-700">{l.status === "pending_payment" ? "processing payment" : l.status.replace("_", " ")}</span>
+              <span className="badge bg-brand-50 text-brand-700">{l.status === "pending_payment" ? "processing payment" : l.status.replace("_", " ")}</span>
             </li>
           );
         })}

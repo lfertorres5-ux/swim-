@@ -9,8 +9,8 @@ export default async function OnboardingPage() {
 
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-6 py-16">
-      <h1 className="text-2xl font-semibold text-slate-900">Welcome! Tell us about you</h1>
-      <p className="mt-2 mb-6 text-slate-600">You&apos;ll add your swimmers and pool address when you book.</p>
+      <h1 className="text-2xl font-semibold text-stone-900">Welcome! Tell us about you</h1>
+      <p className="mt-2 mb-6 text-stone-600">You&apos;ll add your swimmers and pool address when you book.</p>
       <ProfileForm
         defaults={{ firstName: user.firstName ?? "", lastName: user.lastName ?? "", phone: user.phone ?? "" }}
       />

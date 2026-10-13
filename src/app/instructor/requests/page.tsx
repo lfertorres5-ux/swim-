@@ -12,7 +12,7 @@ type Summary = { zone?: string; neighborhood?: string; duration_minutes?: number
 export default async function RequestsPage({ searchParams }: PageProps<"/instructor/requests">) {
   const ctx = await getInstructorContext();
   const { error, done } = await searchParams;
-  if (!ctx.isActive) return <p className="card text-slate-600">Booking requests will appear here once your account is activated.</p>;
+  if (!ctx.isActive) return <p className="card text-stone-600">Booking requests will appear here once your account is activated.</p>;
 
   const supabase = await createClient();
   const { data: offers } = await supabase
@@ -26,7 +26,7 @@ export default async function RequestsPage({ searchParams }: PageProps<"/instruc
   return (
     <div className="max-w-3xl">
       <h1 className="text-2xl font-semibold">Booking requests</h1>
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-sm text-stone-500">
         Please answer before the deadline. If you decline or don&apos;t respond, the lesson is offered to the next available
         instructor. Swimmer names and the address are shared after you accept.
       </p>
@@ -45,10 +45,10 @@ export default async function RequestsPage({ searchParams }: PageProps<"/instruc
                 </p>
                 <span className="badge bg-amber-100 text-amber-800">Respond by {formatDateTime(o.expires_at)}</span>
               </div>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-stone-600">
                 Zone {s.zone} · {s.neighborhood} · {s.duration_minutes} min
               </p>
-              <ul className="mt-2 text-sm text-slate-700">
+              <ul className="mt-2 text-sm text-stone-700">
                 {(s.swimmers ?? []).map((sw, i) => (
                   <li key={i}>
                     Swimmer {i + 1}: {sw.age ?? "?"} yrs · {LEVEL_LABELS[sw.swim_level] ?? sw.swim_level}
@@ -71,7 +71,7 @@ export default async function RequestsPage({ searchParams }: PageProps<"/instruc
             </li>
           );
         })}
-        {!offers?.length && <li className="card text-slate-600">No open requests.</li>}
+        {!offers?.length && <li className="card text-stone-600">No open requests.</li>}
       </ul>
     </div>
   );

@@ -40,7 +40,7 @@ export default async function LessonDetail({ params, searchParams }: PageProps<"
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <section className="space-y-4 lg:col-span-2">
-        <Link href="/parent" className="text-sm text-sky-700">
+        <Link href="/parent" className="text-sm text-brand-700">
           ← My lessons
         </Link>
         <h1 className="text-2xl font-semibold">
@@ -50,25 +50,25 @@ export default async function LessonDetail({ params, searchParams }: PageProps<"
         {typeof error === "string" && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
         <dl className="card grid grid-cols-3 gap-y-2 text-sm">
-          <dt className="text-slate-500">Status</dt>
+          <dt className="text-stone-500">Status</dt>
           <dd className="col-span-2 font-medium capitalize">{b.status.replaceAll("_", " ")}</dd>
-          <dt className="text-slate-500">Swimmers</dt>
+          <dt className="text-stone-500">Swimmers</dt>
           <dd className="col-span-2">{kids}</dd>
           {loc && (
             <>
-              <dt className="text-slate-500">Where</dt>
+              <dt className="text-stone-500">Where</dt>
               <dd className="col-span-2">
                 {loc.address_line1}
                 {loc.address_line2 ? `, ${loc.address_line2}` : ""}, {loc.city} {loc.postal_code}
-                {loc.access_notes && <span className="block text-slate-500">{loc.access_notes}</span>}
+                {loc.access_notes && <span className="block text-stone-500">{loc.access_notes}</span>}
               </dd>
             </>
           )}
-          <dt className="text-slate-500">Paid</dt>
+          <dt className="text-stone-500">Paid</dt>
           <dd className="col-span-2">{b.package_id ? "Package credit" : price ? formatCents(price.total_cents) : "—"}</dd>
           {b.cancellation_reason && (
             <>
-              <dt className="text-slate-500">Reason</dt>
+              <dt className="text-stone-500">Reason</dt>
               <dd className="col-span-2">{b.cancellation_reason}</dd>
             </>
           )}
@@ -77,8 +77,8 @@ export default async function LessonDetail({ params, searchParams }: PageProps<"
         {note && (
           <div className="card">
             <h2 className="font-semibold">Progress note</h2>
-            <p className="mt-1 text-sm text-slate-700">{note.summary}</p>
-            {note.next_focus && <p className="mt-2 text-sm text-slate-600"><strong>Next time:</strong> {note.next_focus}</p>}
+            <p className="mt-1 text-sm text-stone-700">{note.summary}</p>
+            {note.next_focus && <p className="mt-2 text-sm text-stone-600"><strong>Next time:</strong> {note.next_focus}</p>}
           </div>
         )}
 
@@ -88,13 +88,13 @@ export default async function LessonDetail({ params, searchParams }: PageProps<"
             {preview.onTime ? (
               <ReschedulePicker bookingId={b.id} today={laDateString()} instructorName={instructor?.firstName ?? null} />
             ) : (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-stone-600">
                 This lesson starts within {preview.policy.cancellationWindowHours} hours, so it can no longer be rescheduled online. Message your instructor or contact us.
               </p>
             )}
-            <form action={cancelLessonAction} className="space-y-2 border-t border-slate-100 pt-4">
+            <form action={cancelLessonAction} className="space-y-2 border-t border-stone-100 pt-4">
               <input type="hidden" name="bookingId" value={b.id} />
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-stone-600">
                 {preview.restoreCredit
                   ? "Cancelling now returns the credit to your package."
                   : preview.refundCents > 0
@@ -116,8 +116,8 @@ export default async function LessonDetail({ params, searchParams }: PageProps<"
             <InstructorCard instructor={instructor} favorite={parent?.favorite_instructor_id === instructor.id} />
             <form action={toggleFavoriteAction}>
               <input type="hidden" name="instructorId" value={instructor.id} />
-              <button className="text-sm text-sky-700 underline">
-                {parent?.favorite_instructor_id === instructor.id ? "Remove from favorites" : `♥ Make ${instructor.firstName} my favorite`}
+              <button className="text-sm text-brand-700 underline">
+                {parent?.favorite_instructor_id === instructor.id ? "Remove from favorites" : `Make ${instructor.firstName} my favorite`}
               </button>
             </form>
             <Link href={`/book?instructor=${instructor.id}`} className="btn-secondary w-full">
@@ -125,7 +125,7 @@ export default async function LessonDetail({ params, searchParams }: PageProps<"
             </Link>
           </>
         ) : (
-          <p className="card text-sm text-slate-600">We&apos;re confirming your instructor.</p>
+          <p className="card text-sm text-stone-600">We&apos;re confirming your instructor.</p>
         )}
       </aside>
     </div>
