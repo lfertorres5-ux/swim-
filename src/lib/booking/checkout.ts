@@ -5,6 +5,7 @@ import { paymentsGateway } from "@/lib/payments/gateway";
 import { loadCatalog, lookupPromo } from "@/lib/pricing/catalog";
 import { PricingError, quoteLesson, type Plan, type PlanKind, type Quote } from "@/lib/pricing/quote";
 import { ageInMonths } from "@/lib/scheduling/engine";
+import { notifyBookingReceived, safely } from "@/lib/notifications/events";
 import { openBookingRequest } from "@/lib/scheduling/offers";
 import { schedulerForInstant } from "@/lib/scheduling/service";
 import { SchedulingError, type SwimLevel } from "@/lib/scheduling/types";
@@ -272,6 +273,7 @@ export async function createBookingCheckout(parentId: string, raw: CheckoutInput
   // Nothing to pay (package credit or 100% promo): confirm right away.
   if (!paymentId) {
     for (const id of bookingIds) await openBookingRequest(id, now);
+    await safely("booking received", () => notifyBookingReceived(bookingIds));
     return { kind: "confirmed", url: `/parent/bookings/confirmed?booking=${bookingIds[0]}`, bookingIds };
   }
 
@@ -386,6 +388,7 @@ export async function fulfillPayment(checkout: { paymentId: string; sessionId: s
   if (codeId) await admin.rpc("redeem_discount_code", { p_code_id: codeId });
 
   for (const b of bookings ?? []) await openBookingRequest(b.id, now);
+  await safely("booking received", () => notifyBookingReceived((bookings ?? []).map((b) => b.id as string)));
 
   await admin.from("audit_log").insert({
     actor_id: payment.parent_id,
@@ -395,7 +398,7 @@ export async function fulfillPayment(checkout: { paymentId: string; sessionId: s
     entity_id: payment.id,
     metadata: { amount_cents: payment.amount_cents, booking_ids: (bookings ?? []).map((b) => b.id) },
   });
-  // TODO(phase 4): booking confirmation email/SMS. TODO(phase 6): booking.created webhook.
+  // TODO(phase 6): booking.created webhook.
   return { fulfilled: true as const, bookingIds: (bookings ?? []).map((b) => b.id as string) };
 }
 

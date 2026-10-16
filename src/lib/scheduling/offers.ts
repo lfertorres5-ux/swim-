@@ -1,4 +1,5 @@
 import "server-only";
+import { notifyNewRequest, notifyUnmatched, safely } from "@/lib/notifications/events";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { laDateString } from "@/lib/time";
 import { ageInMonths } from "./engine";
@@ -93,7 +94,7 @@ export async function openBookingRequest(bookingId: string, now = Date.now()): P
     throw new Error(`start_booking_request failed: ${error.message}`);
   }
   if (!offerId) return offerNextInstructor(bookingId, now);
-  // TODO(phase 4): notify the instructor (email + SMS) of the new request.
+  await safely("new request", () => notifyNewRequest(bookingId, ctx.instructorId!, offerId as string, expiresAt));
   return { status: "offered", instructorId: ctx.instructorId!, offerId: offerId as string };
 }
 
@@ -134,7 +135,7 @@ export async function offerNextInstructor(bookingId: string, now = Date.now()): 
       p_lesson_summary: ctx.lessonSummary,
     });
     if (!offerError) {
-      // TODO(phase 4): notify the instructor (email + SMS) of the new request.
+      await safely("new request", () => notifyNewRequest(bookingId, candidate.instructorId, offerId as string, expiresAt));
       return { status: "offered", instructorId: candidate.instructorId, offerId: offerId as string };
     }
     if (offerError.code === "SB002") return { status: "noop", reason: offerError.message };
@@ -149,7 +150,7 @@ async function markUnmatched(bookingId: string, reason: string): Promise<OfferOu
   const admin = createAdminClient();
   await admin.from("bookings").update({ needs_attention: true, attention_reason: reason }).eq("id", bookingId);
   await admin.from("audit_log").insert({ action: "system.booking_unmatched", entity_type: "booking", entity_id: bookingId, booking_id: bookingId, metadata: { reason } });
-  // TODO(phase 4): alert the admin; TODO(phase 3): offer the parent a reschedule or refund.
+  await safely("unmatched", () => notifyUnmatched(bookingId, reason));
   return { status: "unmatched", reason };
 }
 

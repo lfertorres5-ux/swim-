@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { getInstructorContext } from "@/lib/instructor-context";
 import { createClient } from "@/lib/supabase/server";
-import { formatTime, laDateString } from "@/lib/time";
+import { formatTime, hasStarted, laDateString } from "@/lib/time";
 
 type LessonChild = { first_name: string; age: number | null; swim_level: string; notes: string | null };
 type Address = { line1: string; line2: string | null; city: string; postal_code: string; access_notes: string | null };
@@ -15,6 +16,7 @@ type Lesson = {
   address: Address | null;
   address_visible: boolean;
   address_visible_from: string;
+  has_note: boolean;
 };
 
 /**
@@ -62,6 +64,11 @@ export default async function InstructorToday() {
                 </li>
               ))}
             </ul>
+            {hasStarted(l.starts_at) && (
+              <Link href={`/instructor/lessons/${l.booking_id}/note`} className={`mt-3 ${l.has_note ? "btn-secondary" : "btn-primary"} w-full sm:w-auto`}>
+                {l.has_note ? "Edit progress note" : "Write progress note"}
+              </Link>
+            )}
             {l.address ? (
               <div className="mt-3 rounded-xl bg-brand-50 p-3 text-sm">
                 <p className="font-medium">
@@ -81,7 +88,7 @@ export default async function InstructorToday() {
                 </a>
               </div>
             ) : (
-              <p className="mt-3 text-sm text-stone-500">Address appears on lesson day.</p>
+              <p className="mt-3 text-sm text-stone-500">{hasStarted(l.address_visible_from) ? "Address is hidden again after the lesson." : "Address appears on lesson day."}</p>
             )}
           </li>
         ))}

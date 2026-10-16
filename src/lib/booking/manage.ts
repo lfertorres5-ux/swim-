@@ -1,4 +1,5 @@
 import "server-only";
+import { notifyCancelled, notifyRescheduled, safely } from "@/lib/notifications/events";
 import { paymentsGateway } from "@/lib/payments/gateway";
 import { ageInMonths } from "@/lib/scheduling/engine";
 import { offerNextInstructor } from "@/lib/scheduling/offers";
@@ -108,7 +109,8 @@ export async function cancelBooking(parentId: string, bookingId: string, reason:
     booking_id: bookingId,
     metadata: { on_time: preview.onTime, refund_cents: preview.refundCents, refund_id: refundId, credit_restored: preview.restoreCredit },
   });
-  // TODO(phase 4): cancellation email/SMS to parent + instructor. TODO(phase 6): booking.cancelled webhook.
+  await safely("cancelled", () => notifyCancelled(bookingId, { refundCents: preview.refundCents, creditRestored: preview.restoreCredit }));
+  // TODO(phase 6): booking.cancelled webhook.
   return { ...preview, refundId };
 }
 
@@ -167,6 +169,6 @@ export async function rescheduleBooking(parentId: string, bookingId: string, new
     booking_id: bookingId,
     metadata: { from: booking.starts_at, to: times.starts_at, kept_instructor: Boolean(keepInstructor) },
   });
-  // TODO(phase 4): notify instructor(s) of the change.
+  await safely("rescheduled", () => notifyRescheduled(bookingId, booking.starts_at, Boolean(keepInstructor), booking.instructor_id));
   return { keptInstructor: Boolean(keepInstructor) };
 }

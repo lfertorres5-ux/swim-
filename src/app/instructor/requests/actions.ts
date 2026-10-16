@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
+import { notifyAccepted, safely } from "@/lib/notifications/events";
 import { offerNextInstructor } from "@/lib/scheduling/offers";
 import { createClient } from "@/lib/supabase/server";
 
@@ -27,6 +28,9 @@ export async function respondToRequest(formData: FormData) {
     redirect(`/instructor/requests?error=${encodeURIComponent(error.code === "SB002" ? "That request was already answered or reassigned." : "Couldn't record your response.")}`);
   }
 
+  if (outcome === "accepted" && offer?.booking_id) {
+    await safely("accepted", () => notifyAccepted(offer.booking_id));
+  }
   if (outcome !== "accepted" && offer?.booking_id) {
     try {
       await offerNextInstructor(offer.booking_id);

@@ -8,6 +8,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       <AppHeader user={user} nav={[
           { href: "/admin", label: "Dashboard" },
           { href: "/admin/scheduling", label: "Scheduling" },
+          { href: "/admin/notifications", label: "Messages" },
         ]} />
       <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</div>
     </>

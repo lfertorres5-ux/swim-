@@ -17,8 +17,8 @@ Stripe · Twilio Proxy · Resend · Google Maps Places.
 | 1 | Schema, RLS, auth (magic link + Google), instructor terms gate, seed, RLS test suite | ✅ done |
 | 2 | Instructor profile + availability builder, scheduling engine, booking requests with auto-offer, San Diego County-only service area | ✅ done |
 | 3 | Landing page + service-area map, booking wizard, pricing engine, packages & weekly series, Stripe Checkout / Portal / webhooks, parent account (cancel, reschedule, notes, receipts, favorite) | ✅ done |
-| 4 | Masked comms (Twilio Proxy), chat filter, lesson notes, notifications | ⏳ next |
-| 5 | Admin console, sub board, day-pass inquiries | — |
+| 4 | Email + text notifications (outbox with retries and de-duplication), 24-hour reminders, instructor progress notes from the phone | ✅ done (masked numbers + chat dropped by owner decision) |
+| 5 | Admin console, sub board, day-pass inquiries | ⏳ next |
 | 6 | Google Calendar / iCal, outbound webhooks, CSV + import adapters | — |
 
 ## Repository layout
@@ -36,6 +36,9 @@ src/
     parent/progress, /receipts   progress notes; payments + Stripe Customer Portal
     api/webhooks/stripe   signed Stripe events → fulfillment / release / refund sync
     dev/checkout          simulated checkout for keyless local dev (never in production)
+    instructor/lessons/[id]/note   phone-first progress note (skills checklist + comment)
+    admin/notifications   every email/text sent or logged
+    api/cron/notifications   24-hour reminders + delivery retries (every 5 min)
     api/availability      slot search for the booking calendar
     api/cron/scheduling   expire offers & holds, auto-offer onward (Vercel Cron)
   lib/
@@ -47,6 +50,8 @@ src/
     pricing/              pricing engine (pure) + catalog / promo lookup
     booking/              checkout, fulfillment, cancel/reschedule, address verification, policy
     payments/             Stripe gateway (+ dev gateway), webhook handling
+    notifications/        templates (pure), outbox + Resend/Twilio delivery, business events
+    skills.ts             progress-note checklist by swim level
   content/instructor-terms.ts   versioned instructor agreement text
   proxy.ts                session refresh + optimistic auth redirect (Next 16 "proxy")
 supabase/
@@ -142,7 +147,7 @@ supabase db reset
 TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run test:rls:supabase
 ```
 
-What the database suite proves (84 tests), among others:
+What the database suite proves (88 tests), among others:
 
 - an instructor cannot read **any** parent row in `users` (email/phone/last name), `parents`, `children`,
   `booking_locations`, `booking_pricing`, `payments`, `packages`, day-pass inquiries, flagged messages or webhooks;
@@ -161,12 +166,14 @@ What the database suite proves (84 tests), among others:
   by the database;
 - accept/decline/expiry of booking requests, and the service-role-only automation RPCs;
 - contact sharing: only after a paid package lesson is accepted, only between that family and that
-  instructor; it can be switched off, and every view is audited.
+  instructor; it can be switched off, and every view is audited;
+- progress notes: only the assigned instructor, only after the lesson starts; submitting completes the
+  lesson and records pay once; families see only their own message history.
 
-Unit tests (96) cover the scheduling engine (windows, overrides, DST, buffers, qualification, neighborhood
+Unit tests (102) cover the scheduling engine (windows, overrides, DST, buffers, qualification, neighborhood
 slots, ranking, weekly series), the pricing engine (every spec price, group, zone, package, series,
 neighborhood and promo rule), the cancellation policy, Stripe webhook signatures, San Diego County geometry,
-and time/phone helpers. The API suite (24) runs the real server modules through PostgREST:
+notification templates (including that instructor messages never carry an address or contact details), and time/phone helpers. The API suite (32) runs the real server modules through PostgREST:
 - availability search and the auto-offer loop (offered down the ranked list until nobody is left), plus
   acceptance and the maintenance cron;
 - checkout holds at server-computed prices, and a held slot can't be double-booked;
@@ -175,6 +182,8 @@ and time/phone helpers. The API suite (24) runs the real server modules through 
 - package purchase → accept → both sides see contact details;
 - on-time and late cancellations and their refunds, and rescheduling with the same instructor;
 - Stripe event de-duplication and expiry release;
+- notifications for every event (received, request, confirmed, new instructor, reminder, cancelled,
+  progress note, no-match), sent once, respecting opt-outs;
 - the exact queries the pages run under RLS.
 
 ## Service area: San Diego County only

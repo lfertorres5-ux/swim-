@@ -95,3 +95,8 @@ export function parseTimeOfDay(value: string): number {
 export function formatTimeOfDay(minutes: number): string {
   return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }
+
+/** True once the instant has passed (server-rendered pages evaluate this per request). */
+export function hasStarted(iso: string): boolean {
+  return Date.parse(iso) <= Date.now();
+}
