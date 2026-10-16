@@ -157,9 +157,10 @@ async function markUnmatched(bookingId: string, reason: string): Promise<OfferOu
 /** Cron: expire lapsed offers and payment holds, then keep every open request moving. */
 export async function runSchedulingMaintenance(now = Date.now()) {
   const admin = createAdminClient();
-  const [{ data: holds, error: holdsError }, { data: expired, error: expiredError }] = await Promise.all([
+  const [{ data: holds, error: holdsError }, { data: expired, error: expiredError }, { data: shifts }] = await Promise.all([
     admin.rpc("expire_payment_holds"),
     admin.rpc("expire_stale_offers"),
+    admin.rpc("expire_open_shifts"),
   ]);
   if (holdsError) throw new Error(holdsError.message);
   if (expiredError) throw new Error(expiredError.message);
@@ -178,6 +179,7 @@ export async function runSchedulingMaintenance(now = Date.now()) {
   return {
     expiredHolds: ((holds ?? []) as string[]).length,
     expiredOffers: ((expired ?? []) as string[]).length,
+    expiredShifts: (shifts ?? 0) as number,
     offers: results,
   };
 }

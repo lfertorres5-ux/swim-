@@ -53,7 +53,7 @@ update public.users set role = 'admin' where email = 'owner@your-domain.com';
 delete from public.parents where id = (select id from public.users where email = 'owner@your-domain.com');
 ```
 
-Invite instructors by inserting into `public.instructor_invites` (the Phase 5 admin UI does this for you).
+Invite instructors from **Admin → Instructors** (they get an email).
 When an invited email signs in, it becomes an **inactive** instructor who must accept the platform terms
 before seeing any client data, and whom an admin must then activate.
 
@@ -64,6 +64,7 @@ before seeing any client data, and whom an admin must then activate.
 | 2 | `CRON_SECRET` (any long random string). `vercel.json` runs `/api/cron/scheduling` every 10 minutes, which expires booking requests and re-offers them. **Vercel Hobby only allows daily crons**, so use Pro, or call the endpoint from an external scheduler with `Authorization: Bearer $CRON_SECRET` |
 | 3 | Stripe: `STRIPE_SECRET_KEY`, webhook endpoint `https://your-domain.com/api/webhooks/stripe` → `STRIPE_WEBHOOK_SECRET`, Customer Portal enabled (see [payments.md](payments.md)). Google Maps: a browser key `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` restricted to your domains with **Places API (New)**, and a server key `GOOGLE_MAPS_SERVER_API_KEY` with the **Geocoding API**. Make sure `PAYMENTS_DEV_MODE` is unset in production |
 | 4 | **Email:** `RESEND_API_KEY` + a verified sending domain, `EMAIL_FROM`. **Text:** Twilio `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID` (register the number for A2P 10DLC; Twilio handles STOP/opt-out). `ADMIN_ALERT_EMAIL` for owner alerts. `/api/cron/notifications` runs every 5 minutes (reminders + retries). Without keys, messages are only logged — see Admin → Messages |
+| 5 | Nothing new. Set `ADMIN_ALERT_EMAIL` to get sub-approval and day-pass alerts; create day-pass links in Stripe → Payment Links |
 | 6 | Google Calendar OAuth client; `TOKEN_ENCRYPTION_KEY` |
 
 ## 5. Ongoing migrations

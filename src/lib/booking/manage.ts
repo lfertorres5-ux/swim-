@@ -1,6 +1,6 @@
 import "server-only";
 import { notifyCancelled, notifyRescheduled, safely } from "@/lib/notifications/events";
-import { paymentsGateway } from "@/lib/payments/gateway";
+import { refundPayment, RefundError } from "@/lib/payments/refunds";
 import { ageInMonths } from "@/lib/scheduling/engine";
 import { offerNextInstructor } from "@/lib/scheduling/offers";
 import { schedulerForInstant } from "@/lib/scheduling/service";
@@ -22,6 +22,20 @@ async function loadPolicy(): Promise<CancellationPolicy & { minNoticeHours: numb
   };
 }
 
+/**
+ * Bookings made through checkout carry payment_id. Admin-created or imported
+ * ones may only be linked from the payment side (payments.booking_id / series).
+ */
+export async function resolvePaymentId(booking: { id: string; payment_id: string | null; package_id: string | null; series_id: string | null }) {
+  if (booking.payment_id || booking.package_id) return booking.payment_id;
+  const admin = createAdminClient();
+  const { data: byBooking } = await admin.from("payments").select("id").eq("booking_id", booking.id).in("status", ["succeeded", "partially_refunded"]).limit(1).maybeSingle();
+  if (byBooking) return byBooking.id as string;
+  if (!booking.series_id) return null;
+  const { data: bySeries } = await admin.from("payments").select("id").eq("series_id", booking.series_id).is("booking_id", null).in("status", ["succeeded", "partially_refunded"]).limit(1).maybeSingle();
+  return (bySeries?.id as string | undefined) ?? null;
+}
+
 async function loadOwnedBooking(parentId: string, bookingId: string) {
   const admin = createAdminClient();
   const { data: booking } = await admin
@@ -31,17 +45,7 @@ async function loadOwnedBooking(parentId: string, bookingId: string) {
     .maybeSingle();
   if (!booking || booking.parent_id !== parentId) throw new BookingError("not_found", "Lesson not found.");
 
-  // Bookings made through checkout carry payment_id. Admin-created or imported
-  // ones may only be linked from the payment side (payments.booking_id / series).
-  let paymentId = booking.payment_id as string | null;
-  if (!paymentId && !booking.package_id) {
-    const { data: byBooking } = await admin.from("payments").select("id").eq("booking_id", bookingId).in("status", ["succeeded", "partially_refunded"]).limit(1).maybeSingle();
-    paymentId = byBooking?.id ?? null;
-    if (!paymentId && booking.series_id) {
-      const { data: bySeries } = await admin.from("payments").select("id").eq("series_id", booking.series_id).is("booking_id", null).in("status", ["succeeded", "partially_refunded"]).limit(1).maybeSingle();
-      paymentId = bySeries?.id ?? null;
-    }
-  }
+  const paymentId = await resolvePaymentId(booking);
   return { ...booking, payment_id: paymentId };
 }
 
@@ -66,28 +70,11 @@ export async function cancelBooking(parentId: string, bookingId: string, reason:
   let refundId: string | null = null;
 
   if (preview.refundCents > 0 && booking.payment_id) {
-    const { data: payment } = await admin.from("payments").select("id, status, amount_cents, refunded_cents, stripe_payment_intent_id, stripe_refund_ids").eq("id", booking.payment_id).single();
-    if (!payment?.stripe_payment_intent_id || !["succeeded", "partially_refunded"].includes(payment.status)) {
-      throw new BookingError("refund_unavailable", "We couldn't find the payment for this lesson — please contact us.");
-    }
-    const amount = Math.min(preview.refundCents, payment.amount_cents - payment.refunded_cents);
-    if (amount > 0) {
-      const refund = await paymentsGateway().refund({
-        paymentIntentId: payment.stripe_payment_intent_id,
-        amountCents: amount,
-        idempotencyKey: `cancel-${bookingId}`,
-        metadata: { booking_id: bookingId, payment_id: payment.id },
-      });
-      refundId = refund.refundId;
-      const refunded = payment.refunded_cents + amount;
-      await admin
-        .from("payments")
-        .update({
-          refunded_cents: refunded,
-          status: refunded >= payment.amount_cents ? "refunded" : "partially_refunded",
-          stripe_refund_ids: [...payment.stripe_refund_ids, refund.refundId],
-        })
-        .eq("id", payment.id);
+    try {
+      refundId = (await refundPayment(booking.payment_id, preview.refundCents, `cancel-${bookingId}`, { booking_id: bookingId })).refundId;
+    } catch (err) {
+      if (err instanceof RefundError) throw new BookingError("refund_unavailable", "We couldn't find the payment for this lesson — please contact us.");
+      throw err;
     }
   }
 

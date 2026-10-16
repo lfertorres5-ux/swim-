@@ -215,3 +215,131 @@ export function instructorRescheduled(p: { lesson: LessonInfo; previousStart: st
 export function adminUnmatched(p: { lesson: LessonInfo; reason: string; url: string }): Rendered {
   return build(`Needs attention: no instructor for ${whenShort(p.lesson)}`, "A booking needs you", [`${p.reason}.`, `Lesson: ${when(p.lesson)}, ${p.lesson.neighborhood ?? ""}.`], { label: "Open admin", url: p.url }, null);
 }
+
+// --- Sub board ------------------------------------------------------------------
+
+export type ShiftInfo = { start: string; end: string; durationMinutes: number; neighborhood: string | null; ages: (number | null)[] };
+
+const shiftWho = (ages: (number | null)[]) => ages.map((a) => (a === null ? "swimmer" : `${a}-year-old`)).join(", ") || "swimmers";
+const shiftWhen = (s: ShiftInfo) => `${formatDate(s.start, { weekday: "long", month: "long", day: "numeric" })} at ${formatTime(s.start)}`;
+const shiftWhenShort = (s: ShiftInfo) => `${formatDate(s.start, { weekday: "short", month: "short", day: "numeric" })} ${formatTime(s.start)}`;
+
+export function instructorShiftAvailable(p: { shift: ShiftInfo; url: string }): Rendered {
+  const s = p.shift;
+  return build(
+    `Up for grabs: ${shiftWhenShort(s)} in ${s.neighborhood ?? "your area"}`,
+    "A lesson needs a sub",
+    [`${shiftWhen(s)} · ${s.durationMinutes} min · ${s.neighborhood ?? "your area"} · ${shiftWho(s.ages)}.`, "You're free and qualified for it. First to claim it gets it."],
+    { label: "Open the sub board", url: p.url },
+    `${brand.name}: sub needed ${shiftWhenShort(s)} in ${s.neighborhood ?? "your area"} (${shiftWho(s.ages)}). ${p.url}`,
+  );
+}
+
+export function instructorShiftFilled(p: { lesson: LessonInfo; url: string }): Rendered {
+  const l = p.lesson;
+  return build(
+    `It's yours: ${kids(l.swimmers)} on ${whenShort(l)}`,
+    "You picked up a lesson",
+    [`${when(l)} · ${l.durationMinutes} min · ${kids(l.swimmers)} in ${l.neighborhood ?? "your area"}.`, "The address shows up in the app on the day of the lesson."],
+    { label: "View schedule", url: p.url },
+    `${brand.name}: you're covering ${kids(l.swimmers)} ${whenShort(l)} in ${l.neighborhood ?? "your area"}.`,
+  );
+}
+
+export function instructorShiftCovered(p: { lesson: LessonInfo; subFirstName: string | null; url: string }): Rendered {
+  const l = p.lesson;
+  return build(
+    `Covered: your lesson on ${whenShort(l)}`,
+    "Your lesson is covered",
+    [`${p.subFirstName ?? "Another instructor"} is teaching ${kids(l.swimmers)} on ${when(l)}. It's off your schedule.`],
+    { label: "View schedule", url: p.url },
+    `${brand.name}: ${p.subFirstName ?? "a sub"} is covering ${kids(l.swimmers)} ${whenShort(l)}.`,
+  );
+}
+
+export function instructorClaimDeclined(p: { shift: ShiftInfo; note: string | null; url: string }): Rendered {
+  return build(
+    `Not this time: ${shiftWhenShort(p.shift)}`,
+    "The owner kept a different plan for this lesson",
+    [`Thanks for offering to cover ${shiftWhen(p.shift)}. It's not going to you this time.`, ...(p.note ? [`Note from the owner: “${p.note}”`] : [])],
+    { label: "Open the sub board", url: p.url },
+    null,
+  );
+}
+
+export function adminShiftNeedsApproval(p: { shift: ShiftInfo; fromFirstName: string | null; toFirstName: string | null; url: string }): Rendered {
+  return build(
+    `Approve sub: ${p.toFirstName} for ${p.fromFirstName}, ${shiftWhenShort(p.shift)}`,
+    "A sub is waiting for your OK",
+    [`${p.toFirstName ?? "An instructor"} wants to cover ${p.fromFirstName ?? "a colleague"}'s lesson on ${shiftWhen(p.shift)} (${p.shift.neighborhood ?? ""}).`],
+    { label: "Review", url: p.url },
+    null,
+  );
+}
+
+// --- Admin-originated ----------------------------------------------------------
+
+export function instructorInvite(p: { url: string }): Rendered {
+  return build(
+    `You're invited to teach with ${brand.name}`,
+    "Come teach with us",
+    [
+      `You've been invited to join ${brand.name} as an instructor.`,
+      "Sign in with this email address to get started: you'll add a photo and a short bio, set your hours and areas, and accept the instructor agreement. We'll activate your account after that.",
+    ],
+    { label: "Get started", url: p.url },
+    null,
+  );
+}
+
+export function parentPaymentRequest(p: { lesson: LessonInfo; amountCents: number; url: string }): Rendered {
+  const l = p.lesson;
+  return build(
+    `Payment for ${kids(l.swimmers)}'s lesson on ${whenShort(l)}`,
+    "Your lesson is booked",
+    [`We've booked ${kids(l.swimmers)} with ${l.instructorFirstName ?? "your instructor"} on ${when(l)} (${l.durationMinutes} min).`, `The total is ${money(p.amountCents)}. You can pay securely with the link below.`],
+    { label: `Pay ${money(p.amountCents)}`, url: p.url },
+    `${brand.name}: ${kids(l.swimmers)}'s lesson ${whenShort(l)} is booked. Pay ${money(p.amountCents)} here: ${p.url}`,
+  );
+}
+
+// --- Partner Club Day Pass -------------------------------------------------------
+
+export type DayPassInfo = { name: string; adults: number; children: number; dates: string[]; interest: string; message: string | null };
+
+const passDates = (dates: string[]) => (dates.length ? dates.map((d) => formatDate(`${d}T20:00:00Z`, { weekday: "short", month: "short", day: "numeric" })).join(", ") : "flexible");
+
+export function dayPassReceived(p: { name: string; clubName: string; url: string }): Rendered {
+  return build(
+    `We got your ${p.clubName} day pass inquiry`,
+    `Thanks, ${p.name.split(" ")[0]}!`,
+    ["We'll check availability for your dates and get back to you with member-family pricing, usually within a day or two.", "Nothing is booked or charged until you approve the quote."],
+    { label: "Back to your account", url: p.url },
+    null,
+  );
+}
+
+export function adminDayPassInquiry(p: { inquiry: DayPassInfo; url: string }): Rendered {
+  const q = p.inquiry;
+  return build(
+    `Day pass inquiry: ${q.name} (${q.adults + q.children} people)`,
+    "New day pass inquiry",
+    [`${q.name} · ${q.adults} adults, ${q.children} kids · ${q.interest.replaceAll("_", " ")}.`, `Dates: ${passDates(q.dates)}.`, ...(q.message ? [`“${q.message}”`] : [])],
+    { label: "Open the inbox", url: p.url },
+    null,
+  );
+}
+
+export function dayPassPaymentLink(p: { name: string; clubName: string; amountCents: number | null; dates: string[]; url: string; note: string | null }): Rendered {
+  return build(
+    `Your ${p.clubName} day pass${p.amountCents !== null ? `: ${money(p.amountCents)}` : ""}`,
+    "Your day pass is approved",
+    [
+      `Good news, ${p.name.split(" ")[0]} — your day pass for ${passDates(p.dates)} is approved.`,
+      ...(p.note ? [p.note] : []),
+      `${p.amountCents !== null ? `The member-family price is ${money(p.amountCents)}. ` : ""}Use the secure link below to pay and we'll send the details.`,
+    ],
+    { label: "Pay for your day pass", url: p.url },
+    null,
+  );
+}

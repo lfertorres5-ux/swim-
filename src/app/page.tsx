@@ -170,7 +170,10 @@ export default async function Home() {
       </section>
 
       <footer className="py-10 text-center text-sm text-stone-500">
-        {brand.name} · {brand.region}
+        {brand.name} · {brand.region} ·{" "}
+        <Link href="/day-pass" className="hover:text-stone-800">
+          Partner Club Day Pass
+        </Link>
       </footer>
     </main>
   );

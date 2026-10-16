@@ -59,3 +59,37 @@ describe("notification templates", () => {
     }
   });
 });
+
+describe("sub board, invite and day pass templates", () => {
+  const shift: t.ShiftInfo = { start: lesson.start, end: lesson.end, durationMinutes: 30, neighborhood: "Leucadia", ages: [6, null] };
+
+  it("'up for grabs' shows ages and area only", () => {
+    const r = t.instructorShiftAvailable({ shift, url });
+    expect(r.subject).toBe("Up for grabs: Tue, Oct 20 9:00 AM in Leucadia");
+    expect(r.text).toContain("6-year-old, swimmer");
+    expect(r.sms).toContain("Leucadia");
+  });
+
+  it("the family meets the sub by first name; the original instructor is told it's covered", () => {
+    const fam = t.instructorChanged({ lesson: { ...lesson, instructorFirstName: "Jordan" }, previousFirstName: "Tyler", url });
+    expect(fam.text).toContain("Tyler can't make it, so Jordan will teach Lucas & Ava");
+    const orig = t.instructorShiftCovered({ lesson, subFirstName: "Jordan", url });
+    expect(orig.text).toContain("Jordan is teaching Lucas & Ava");
+  });
+
+  it("day pass messages: owner alert summarises the family; the link email carries the price and link", () => {
+    const alert = t.adminDayPassInquiry({ inquiry: { name: "Priya Shah", adults: 2, children: 3, dates: ["2026-10-28"], interest: "ready_to_book", message: "Birthday!" }, url });
+    expect(alert.subject).toBe("Day pass inquiry: Priya Shah (5 people)");
+    expect(alert.text).toContain("ready to book");
+    expect(alert.text).toContain("Wed, Oct 28");
+    const link = t.dayPassPaymentLink({ name: "Priya Shah", clubName: "Rancho Club", amountCents: 18000, dates: ["2026-10-28"], url: "https://buy.stripe.com/x", note: null });
+    expect(link.subject).toBe("Your Rancho Club day pass: $180");
+    expect(link.text).toContain("Good news, Priya");
+    expect(link.text).toContain("https://buy.stripe.com/x");
+    expect(link.sms).toBeNull();
+  });
+
+  it("payment request shows the amount", () => {
+    expect(t.parentPaymentRequest({ lesson, amountCents: 9000, url }).text).toContain("The total is $90");
+  });
+});

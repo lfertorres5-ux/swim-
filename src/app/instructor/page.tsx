@@ -94,6 +94,12 @@ export default async function InstructorToday() {
         ))}
         {!lessons.length && !error && <li className="card text-stone-600">No lessons today.</li>}
       </ol>
+      <p className="mt-6 text-sm text-stone-500">
+        Can&apos;t make an upcoming lesson?{" "}
+        <Link href="/instructor/sub-board" className="font-medium text-brand-700">
+          Find a sub →
+        </Link>
+      </p>
     </div>
   );
 }

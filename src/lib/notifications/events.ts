@@ -179,3 +179,155 @@ export async function enqueueReminders(now = Date.now()) {
   }
   return count;
 }
+
+// --- Sub board -----------------------------------------------------------------
+
+async function shiftContext(shiftId: string) {
+  const admin = createAdminClient();
+  const { data: s } = await admin
+    .from("open_shifts")
+    .select("id, booking_id, status, released_by, claimed_by, starts_at, ends_at, neighborhood, lesson_summary, decision_note")
+    .eq("id", shiftId)
+    .single();
+  if (!s) throw new Error(`open shift ${shiftId} not found`);
+  const summary = (s.lesson_summary ?? {}) as { duration_minutes?: number; swimmers?: { age: number | null }[] };
+  const shift: t.ShiftInfo = {
+    start: s.starts_at,
+    end: s.ends_at,
+    durationMinutes: summary.duration_minutes ?? Math.round((Date.parse(s.ends_at) - Date.parse(s.starts_at)) / 60_000),
+    neighborhood: s.neighborhood,
+    ages: (summary.swimmers ?? []).map((x) => x.age ?? null),
+  };
+  return { row: s, shift };
+}
+
+const adminAlertRecipient = (): Recipient | null => {
+  const email = process.env.ADMIN_ALERT_EMAIL;
+  return email ? { userId: null, email, phone: null, emailOptIn: true, smsOptIn: false } : null;
+};
+
+/** Posted → tell every instructor who's free and qualified. */
+export async function notifyShiftPosted(shiftId: string) {
+  const admin = createAdminClient();
+  const { shift } = await shiftContext(shiftId);
+  const { data: ids } = await admin.rpc("open_shift_candidates", { p_shift_id: shiftId });
+  for (const id of (ids ?? []) as string[]) {
+    const p = await person(id);
+    if (p) await enqueue(p, "instructor.shift_available", t.instructorShiftAvailable({ shift, url: `${siteUrl()}/instructor/sub-board` }), { dedupeKey: `shift:${shiftId}:posted:${id}` });
+  }
+}
+
+/** Claimed and waiting on approval → owner alert. */
+export async function notifyShiftClaimed(shiftId: string) {
+  const { row, shift } = await shiftContext(shiftId);
+  const owner = adminAlertRecipient();
+  if (!owner || row.status !== "pending_approval") return;
+  const [from, to] = await Promise.all([person(row.released_by), person(row.claimed_by)]);
+  await enqueue(owner, "admin.shift_approval", t.adminShiftNeedsApproval({ shift, fromFirstName: from?.firstName ?? null, toFirstName: to?.firstName ?? null, url: `${siteUrl()}/admin/sub-board` }), {
+    bookingId: row.booking_id,
+    dedupeKey: `shift:${shiftId}:claimed:${row.claimed_by}`,
+  });
+}
+
+/** Filled → family meets the sub; the sub gets the lesson; the original instructor is off the hook. */
+export async function notifyShiftFilled(shiftId: string) {
+  const { row } = await shiftContext(shiftId);
+  if (row.status !== "filled") return;
+  const { booking, lesson } = await lessonContext(row.booking_id);
+  const [parent, sub, original] = await Promise.all([person(booking.parent_id), person(row.claimed_by), person(row.released_by)]);
+  const key = `shift:${shiftId}:filled`;
+  if (parent) await enqueue(parent, "parent.instructor_changed", t.instructorChanged({ lesson, previousFirstName: original?.firstName ?? null, url: parentLessonUrl(row.booking_id) }), { bookingId: row.booking_id, dedupeKey: `${key}:parent` });
+  if (sub) await enqueue(sub, "instructor.shift_filled", t.instructorShiftFilled({ lesson, url: `${siteUrl()}/instructor` }), { bookingId: row.booking_id, dedupeKey: `${key}:sub` });
+  if (original) await enqueue(original, "instructor.shift_covered", t.instructorShiftCovered({ lesson, subFirstName: sub?.firstName ?? null, url: `${siteUrl()}/instructor` }), { bookingId: row.booking_id, dedupeKey: `${key}:original` });
+}
+
+export async function notifyClaimDeclined(shiftId: string, claimerId: string) {
+  const { row, shift } = await shiftContext(shiftId);
+  const claimer = await person(claimerId);
+  if (claimer) {
+    await enqueue(claimer, "instructor.claim_declined", t.instructorClaimDeclined({ shift, note: row.decision_note, url: `${siteUrl()}/instructor/sub-board` }), {
+      bookingId: row.booking_id,
+      dedupeKey: `shift:${shiftId}:declined:${claimerId}:${Date.now()}`,
+    });
+  }
+}
+
+// --- Admin-originated ----------------------------------------------------------
+
+export async function notifyInstructorInvite(inviteId: string, email: string) {
+  await enqueue({ userId: null, email, phone: null, emailOptIn: true, smsOptIn: false }, "instructor.invite", t.instructorInvite({ url: `${siteUrl()}/login?email=${encodeURIComponent(email)}` }), {
+    dedupeKey: `invite:${inviteId}`,
+  });
+}
+
+export async function notifyPaymentRequest(bookingId: string, amountCents: number, url: string, paymentId: string) {
+  const { booking, lesson } = await lessonContext(bookingId);
+  const parent = await person(booking.parent_id);
+  if (parent) await enqueue(parent, "parent.payment_request", t.parentPaymentRequest({ lesson, amountCents, url }), { bookingId, dedupeKey: `payreq:${paymentId}` });
+}
+
+/** Owner confirmed a lesson directly (manual booking) → same "confirmed" message plus the instructor's heads-up. */
+export async function notifyManualBooking(bookingId: string) {
+  const { booking, lesson } = await lessonContext(bookingId);
+  const [parent, instructor] = await Promise.all([person(booking.parent_id), person(booking.instructor_id)]);
+  if (parent) await enqueue(parent, "parent.booking_confirmed", t.bookingConfirmed({ lesson, url: parentLessonUrl(bookingId), contactUnlocked: false }), { bookingId, dedupeKey: `manual:${bookingId}:parent` });
+  if (instructor) await enqueue(instructor, "instructor.shift_filled", t.instructorShiftFilled({ lesson, url: `${siteUrl()}/instructor` }), { bookingId, dedupeKey: `manual:${bookingId}:instructor:${booking.instructor_id}` });
+}
+
+// --- Day pass --------------------------------------------------------------------
+
+async function clubName() {
+  const admin = createAdminClient();
+  const { data } = await admin.from("platform_settings").select("partner_club_name").single();
+  return data?.partner_club_name || "Partner Club";
+}
+
+export async function notifyDayPassInquiry(inquiryId: string) {
+  const admin = createAdminClient();
+  const { data: q } = await admin.from("day_pass_inquiries").select("*").eq("id", inquiryId).single();
+  if (!q) return;
+  const club = await clubName();
+  const family: Recipient = { userId: q.parent_id, email: q.contact_email, phone: null, emailOptIn: true, smsOptIn: false };
+  await enqueue(family, "parent.day_pass_received", t.dayPassReceived({ name: q.contact_name, clubName: club, url: `${siteUrl()}/day-pass` }), { dedupeKey: `daypass:${inquiryId}:received` });
+  const owner = adminAlertRecipient();
+  if (owner) {
+    await enqueue(
+      owner,
+      "admin.day_pass_inquiry",
+      t.adminDayPassInquiry({
+        inquiry: { name: q.contact_name, adults: q.adults_count, children: q.children_count, dates: q.preferred_dates ?? [], interest: q.interest_level, message: q.message },
+        url: `${siteUrl()}/admin/day-pass`,
+      }),
+      { dedupeKey: `daypass:${inquiryId}:admin` },
+    );
+  }
+}
+
+export async function notifyDayPassPaymentLink(inquiryId: string, note: string | null) {
+  const admin = createAdminClient();
+  const { data: q } = await admin.from("day_pass_inquiries").select("*").eq("id", inquiryId).single();
+  if (!q?.stripe_payment_link_url) return;
+  const club = await clubName();
+  await enqueue(
+    { userId: q.parent_id, email: q.contact_email, phone: null, emailOptIn: true, smsOptIn: false },
+    "parent.day_pass_payment_link",
+    t.dayPassPaymentLink({ name: q.contact_name, clubName: club, amountCents: q.quoted_amount_cents, dates: q.preferred_dates ?? [], url: q.stripe_payment_link_url, note }),
+    { dedupeKey: `daypass:${inquiryId}:link:${q.stripe_payment_link_url}` },
+  );
+}
+
+/** Owner moved a lesson to another instructor (same time). */
+export async function notifyReassigned(bookingId: string, previousInstructorId: string | null) {
+  const { booking, lesson } = await lessonContext(bookingId);
+  const [parent, next, previous] = await Promise.all([person(booking.parent_id), person(booking.instructor_id), person(previousInstructorId)]);
+  const key = `reassign:${bookingId}:${booking.instructor_id}`;
+  if (parent) {
+    const template = previous ? "parent.instructor_changed" : "parent.booking_confirmed";
+    const rendered = previous
+      ? t.instructorChanged({ lesson, previousFirstName: previous.firstName, url: parentLessonUrl(bookingId) })
+      : t.bookingConfirmed({ lesson, url: parentLessonUrl(bookingId), contactUnlocked: false });
+    await enqueue(parent, template, rendered, { bookingId, dedupeKey: `${key}:parent` });
+  }
+  if (next) await enqueue(next, "instructor.shift_filled", t.instructorShiftFilled({ lesson, url: `${siteUrl()}/instructor` }), { bookingId, dedupeKey: `${key}:next` });
+  if (previous) await enqueue(previous, "instructor.booking_cancelled", t.instructorCancelled({ lesson, url: `${siteUrl()}/instructor` }), { bookingId, dedupeKey: `${key}:previous` });
+}

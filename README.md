@@ -18,8 +18,8 @@ Stripe · Twilio Proxy · Resend · Google Maps Places.
 | 2 | Instructor profile + availability builder, scheduling engine, booking requests with auto-offer, San Diego County-only service area | ✅ done |
 | 3 | Landing page + service-area map, booking wizard, pricing engine, packages & weekly series, Stripe Checkout / Portal / webhooks, parent account (cancel, reschedule, notes, receipts, favorite) | ✅ done |
 | 4 | Email + text notifications (outbox with retries and de-duplication), 24-hour reminders, instructor progress notes from the phone | ✅ done (masked numbers + chat dropped by owner decision) |
-| 5 | Admin console, sub board, day-pass inquiries | ⏳ next |
-| 6 | Google Calendar / iCal, outbound webhooks, CSV + import adapters | — |
+| 5 | Admin console (dashboard, bookings, refunds, manual bookings, instructors, pricing/zones/packages/policies, activity log), sub board, Partner Club Day Pass inquiries | ✅ done — see [docs/admin.md](docs/admin.md) |
+| 6 | Google Calendar / iCal, outbound webhooks, CSV + import adapters | ⏳ next |
 
 ## Repository layout
 
@@ -38,6 +38,9 @@ src/
     dev/checkout          simulated checkout for keyless local dev (never in production)
     instructor/lessons/[id]/note   phone-first progress note (skills checklist + comment)
     admin/notifications   every email/text sent or logged
+    admin/bookings, /payments, /instructors, /sub-board, /day-pass, /settings, /activity   owner tools (docs/admin.md)
+    instructor/sub-board  post a lesson for a sub / claim one
+    day-pass/             Partner Club Day Pass inquiry form
     api/cron/notifications   24-hour reminders + delivery retries (every 5 min)
     api/availability      slot search for the booking calendar
     api/cron/scheduling   expire offers & holds, auto-offer onward (Vercel Cron)
@@ -52,6 +55,8 @@ src/
     payments/             Stripe gateway (+ dev gateway), webhook handling
     notifications/        templates (pure), outbox + Resend/Twilio delivery, business events
     skills.ts             progress-note checklist by swim level
+    admin/                owner tools: bookings/refunds/manual bookings, dashboard metrics, form helpers
+    sub-board.ts, day-pass.ts   sub board actions; day-pass inquiries
   content/instructor-terms.ts   versioned instructor agreement text
   proxy.ts                session refresh + optimistic auth redirect (Next 16 "proxy")
 supabase/
@@ -94,7 +99,7 @@ Sign in with any seeded email — the magic link lands in Mailpit at <http://127
 | `owner@example.com` | admin | |
 | `maya@example.com` | instructor | 2 lessons **today** (each address shows until 2 h after it ends); favorite of the Carter family |
 | `jordan@example.com` | instructor | lessons tomorrow and in 3 days → addresses hidden; **Families** shows Daniel Kim (8-pack) with phone/email |
-| `tyler@example.com` | instructor | a pending booking request under **Requests**; released a lesson to the sub board; certs expiring soon |
+| `tyler@example.com` | instructor | a pending booking request under **Requests**; posted a lesson to the **Sub board** (sign in as Maya or Jordan to claim it, then approve as the owner); certs expiring soon |
 | `sofia@example.com` | instructor | zone A only; blackout date in 10 days |
 | `emily@example.com` | parent | 2 kids, weekly recurring series, completed lesson with progress note |
 | `priya@example.com` | parent | 3 kids (group pricing), day-pass inquiry |
@@ -147,7 +152,7 @@ supabase db reset
 TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run test:rls:supabase
 ```
 
-What the database suite proves (88 tests), among others:
+What the database suite proves (102 tests), among others:
 
 - an instructor cannot read **any** parent row in `users` (email/phone/last name), `parents`, `children`,
   `booking_locations`, `booking_pricing`, `payments`, `packages`, day-pass inquiries, flagged messages or webhooks;
@@ -168,12 +173,16 @@ What the database suite proves (88 tests), among others:
 - contact sharing: only after a paid package lesson is accepted, only between that family and that
   instructor; it can be switched off, and every view is audited;
 - progress notes: only the assigned instructor, only after the lesson starts; submitting completes the
-  lesson and records pay once; families see only their own message history.
+  lesson and records pay once; families see only their own message history;
+- sub board: only the assigned instructor can post; the board carries ages/levels only; claims require an
+  active, qualified, free instructor in the zone (travel buffer enforced); only an admin approves; filling
+  moves the booking (old instructor loses access); cancelling/moving the lesson pulls it; covering a
+  package lesson never shares the family's contact details.
 
-Unit tests (102) cover the scheduling engine (windows, overrides, DST, buffers, qualification, neighborhood
+Unit tests (111) cover the scheduling engine (windows, overrides, DST, buffers, qualification, neighborhood
 slots, ranking, weekly series), the pricing engine (every spec price, group, zone, package, series,
 neighborhood and promo rule), the cancellation policy, Stripe webhook signatures, San Diego County geometry,
-notification templates (including that instructor messages never carry an address or contact details), and time/phone helpers. The API suite (32) runs the real server modules through PostgREST:
+notification templates (including that instructor messages never carry an address or contact details), dashboard metrics (utilization, heatmap, net revenue), certification expiry, and time/phone helpers. The API suite (46) runs the real server modules through PostgREST:
 - availability search and the auto-offer loop (offered down the ranked list until nobody is left), plus
   acceptance and the maintenance cron;
 - checkout holds at server-computed prices, and a held slot can't be double-booked;
@@ -184,7 +193,10 @@ notification templates (including that instructor messages never carry an addres
 - Stripe event de-duplication and expiry release;
 - notifications for every event (received, request, confirmed, new instructor, reminder, cancelled,
   progress note, no-match), sent once, respecting opt-outs;
-- the exact queries the pages run under RLS.
+- the exact queries the pages run under RLS;
+- owner tools: manual bookings (comp / payment link / paid offline; no double-booking; county-only
+  addresses), partial and capped refunds, owner cancellations, reassignment, the sub board end to end
+  with every notification, and day-pass inquiries (honeypot, rate limit, payment-link email).
 
 ## Service area: San Diego County only
 

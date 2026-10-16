@@ -11,6 +11,8 @@ export function AppHeaderClient({ name, nav }: { name: string; nav: NavItem[] })
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   // Longest matching prefix wins, so "/instructor" isn't active on "/instructor/requests".
+  // Long menus (admin) collapse to the menu button until there's room for them.
+  const wide = nav.length > 6;
   const active = nav.filter((n) => pathname === n.href || pathname.startsWith(`${n.href}/`)).sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
   return (
@@ -20,7 +22,7 @@ export function AppHeaderClient({ name, nav }: { name: string; nav: NavItem[] })
           {brand.name}
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className={`hidden items-center gap-0.5 ${wide ? "xl:flex" : "md:flex"}`}>
           {nav.map((item) => (
             <Link
               key={item.href}
@@ -32,7 +34,7 @@ export function AppHeaderClient({ name, nav }: { name: string; nav: NavItem[] })
           ))}
         </nav>
 
-        <div className="hidden items-center gap-4 text-sm md:flex">
+        <div className={`hidden items-center gap-4 text-sm ${wide ? "xl:flex" : "md:flex"}`}>
           <span className="text-stone-500">Hi, {name}</span>
           <form action="/auth/signout" method="post">
             <button className="text-stone-500 hover:text-stone-900">Sign out</button>
@@ -41,7 +43,7 @@ export function AppHeaderClient({ name, nav }: { name: string; nav: NavItem[] })
 
         <button
           type="button"
-          className="-mr-2 rounded-full p-2 text-stone-700 md:hidden"
+          className={`-mr-2 rounded-full p-2 text-stone-700 ${wide ? "xl:hidden" : "md:hidden"}`}
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
@@ -53,7 +55,7 @@ export function AppHeaderClient({ name, nav }: { name: string; nav: NavItem[] })
       </div>
 
       {open && (
-        <nav className="border-t border-stone-200/70 px-5 pb-4 md:hidden">
+        <nav className={`border-t border-stone-200/70 px-5 pb-4 ${wide ? "xl:hidden" : "md:hidden"}`}>
           <ul className="flex flex-col py-2">
             {nav.map((item) => (
               <li key={item.href}>
