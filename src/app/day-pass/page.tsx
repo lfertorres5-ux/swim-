@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { brand } from "@/config/brand";
+import { Photo } from "@/components/photo";
+import { SiteFooter } from "@/components/site-footer";
+import { PHOTOS } from "@/content/photos";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { addDays, laDateString } from "@/lib/time";
@@ -14,7 +17,7 @@ export default async function DayPassPage() {
   const clubName = s?.partner_club_name || "our partner country club";
 
   return (
-    <main className="flex-1">
+    <main className="flex flex-1 flex-col">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         <Link href="/" className="font-display text-lg font-semibold text-brand-800">
           {brand.name}
@@ -25,7 +28,8 @@ export default async function DayPassPage() {
       </header>
 
       <section className="mx-auto max-w-3xl px-5 pt-6 pb-16">
-        <p className="text-sm font-semibold tracking-wide text-coral uppercase">For our swim families</p>
+        <Photo photo={PHOTOS.club} tone="dusk" className="mb-8 aspect-[16/7] w-full rounded-[2rem]" sizes="(min-width: 768px) 720px, 95vw" priority />
+        <p className="text-sm font-semibold tracking-wide text-coral-600 uppercase">For our swim families</p>
         <h1 className="mt-2 text-4xl leading-tight font-semibold sm:text-5xl">Partner Club Day Pass</h1>
         <p className="mt-4 text-lg text-stone-600">
           Spend a day at {clubName} — pools, lounge chairs and lunch by the water — with exclusive discounted access arranged for families who swim with us.
@@ -56,6 +60,7 @@ export default async function DayPassPage() {
         </div>
         <p className="mt-6 text-xs text-stone-500">Day passes are subject to the club&apos;s availability and guest rules. Submitting this form doesn&apos;t reserve anything.</p>
       </section>
+      <SiteFooter />
     </main>
   );
 }

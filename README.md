@@ -207,4 +207,4 @@ out-of-county addresses before looking at zones.
 
 ## Deploying
 
-See [docs/deploy.md](docs/deploy.md) (Supabase project → migrations → auth settings → Vercel).
+Step-by-step, no coding: [docs/go-live.md](docs/go-live.md). Technical reference: [docs/deploy.md](docs/deploy.md) (Supabase project → migrations → auth settings → Vercel).

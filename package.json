@@ -13,7 +13,8 @@
     "test:rls:supabase": "vitest run tests/rls",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
-    "test:api": "bash scripts/api-test/run.sh"
+    "test:api": "bash scripts/api-test/run.sh",
+    "db:bundle": "node scripts/db/bundle.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

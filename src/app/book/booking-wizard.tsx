@@ -7,6 +7,7 @@ import type { Quote } from "@/lib/pricing/quote";
 import { AddressAutocomplete } from "./address-autocomplete";
 import { addChildAction, checkAddressAction, checkoutAction, eligibleInstructorsAction, quoteAction, slotsAction, type SlotView } from "./actions";
 import { WeekCalendar } from "./week-calendar";
+import { LaneProgress, PassChips, Picked, SwimPass, type PassItem } from "./wizard-chrome";
 
 export type WizardProps = {
   prices: { durationMinutes: number; priceCents: number }[];
@@ -32,7 +33,7 @@ type Child = { id: string; firstName: string; birthDate: string | null; swimLeve
 type Zone = { id: string; code: string; name: string; travelFeeCents: number; minBookingMinutes: number };
 type Plan = { kind: "single" } | { kind: "package"; offeringId: string } | { kind: "recurring"; weeks: number } | { kind: "package_credit"; packageId: string };
 
-const STEPS = ["Address", "Swimmers", "Instructor", "Plan", "Time", "Review"] as const;
+const STEPS = ["Pool", "Swimmers", "Instructor", "Plan", "Time", "Review"] as const;
 const LEVELS: [string, string][] = [
   ["water_acclimation", "New to water / nervous"],
   ["beginner", "Beginner"],
@@ -267,17 +268,45 @@ export function BookingWizard(props: WizardProps) {
   const back = step > 0 ? () => setStep(step - 1) : undefined;
   const swimmerNames = children.filter((c) => childIds.includes(c.id)).map((c) => c.firstName);
 
+  // Sequential: only finished steps can be revisited.
+  const jump = (i: number) => {
+    if (i >= step) return;
+    setError(null);
+    if (i === 4) setSlot(null);
+    setStep(i);
+  };
+  const pickedInstructor = instructorId ? instructors?.find((i) => i.id === instructorId) : null;
+  const planLabel =
+    plan.kind === "single"
+      ? "Single lesson"
+      : plan.kind === "package"
+        ? `${props.offerings.find((o) => o.id === plan.offeringId)?.lessonCount ?? ""}-lesson package`
+        : plan.kind === "recurring"
+          ? `Weekly × ${plan.weeks}`
+          : "Package credit";
+  const planKey = plan.kind === "single" ? "single" : plan.kind === "package" ? `package:${plan.offeringId}` : plan.kind === "recurring" ? `recurring:${plan.weeks}` : null;
+  const runningTotal = step === 5 && quote ? quote.totalCents : step >= 3 && planKey && planQuotes[planKey] ? planQuotes[planKey].totalCents : plan.kind === "package_credit" && step >= 3 ? 0 : null;
+  const pass: PassItem[] = [
+    { step: 0, label: "Pool", value: zone ? (neighborhood ?? address.city) : null },
+    // Fills in live as the family picks; "Edit" appears once a step is finished.
+    { step: 1, label: "Swimmers", value: step >= 1 && swimmerNames.length ? swimmerNames.join(" & ") : null },
+    { step: 1, label: "Length", value: step >= 1 && duration ? `${duration} min` : null },
+    { step: 2, label: "Instructor", value: step >= 2 ? (pickedInstructor?.firstName ?? "Best match") : null },
+    { step: 3, label: "Plan", value: step >= 3 ? planLabel : null },
+    { step: 4, label: "Time", value: slot ? whenShort.format(new Date(slot.start)) : null },
+  ];
+
   return (
-    <div className="mx-auto max-w-3xl pb-28 lg:max-w-5xl lg:pb-0">
-      <div className="mb-6">
-        <p className="text-sm text-stone-500">
-          Step {step + 1} of {STEPS.length} · {STEPS[step]}
-        </p>
-        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-sand-dark">
-          <div className="h-full rounded-full bg-brand-500 transition-all" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+    <div className="mx-auto max-w-3xl pb-28 lg:max-w-6xl lg:pb-0">
+      <div className="mb-6 space-y-3">
+        <LaneProgress steps={STEPS} current={step} onJump={jump} />
+        <div className="lg:hidden">
+          <PassChips items={pass} current={step} onJump={jump} />
         </div>
       </div>
 
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start lg:gap-8">
+      <div key={step} className="min-w-0 animate-step-in">
       {error && (
         <p className="mb-5 rounded-2xl bg-coral-50 p-4 text-sm text-coral-700" role="alert">
           {error}
@@ -326,12 +355,13 @@ export function BookingWizard(props: WizardProps) {
             </button>
           </p>
 
-          <Heading title="Who's swimming?" />
+          <Heading title="Who's swimming?" sub="Pick everyone joining this lesson." />
           <div className="grid gap-2 sm:grid-cols-2">
             {children.map((c) => {
               const on = childIds.includes(c.id);
               return (
-                <label key={c.id} className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 bg-white p-4 transition ${on ? "border-brand-500" : "border-transparent"}`}>
+                <label key={c.id} className={`relative flex cursor-pointer items-center gap-3 rounded-2xl border-2 bg-white p-4 transition ${on ? "border-brand-500 shadow-md" : "border-transparent hover:border-brand-200"}`}>
+                  <Picked on={on} />
                   <input type="checkbox" className="h-5 w-5 accent-brand-600" checked={on} onChange={(e) => setChildIds((ids) => (e.target.checked ? [...ids, c.id] : ids.filter((x) => x !== c.id)))} />
                   <span>
                     <span className="font-medium text-stone-900">{c.firstName}</span>
@@ -369,7 +399,7 @@ export function BookingWizard(props: WizardProps) {
             Up to {props.includedChildren} kids per lesson at no extra cost, then {money(props.extraChildCents)} each.
           </p>
 
-          <Heading title="How long?" />
+          <Heading title="How long in the water?" />
           <div className="grid grid-cols-3 gap-2">
             {props.prices.map((p) => {
               const disabled = p.durationMinutes < zone.minBookingMinutes;
@@ -379,8 +409,9 @@ export function BookingWizard(props: WizardProps) {
                   key={p.durationMinutes}
                   disabled={disabled}
                   onClick={() => setDuration(p.durationMinutes)}
-                  className={`rounded-2xl border-2 bg-white p-4 text-center transition ${on ? "border-brand-500" : "border-transparent"} ${disabled ? "opacity-40" : ""}`}
+                  className={`relative rounded-2xl border-2 bg-white p-4 text-center transition ${on ? "border-brand-500 shadow-md" : "border-transparent hover:border-brand-200"} ${disabled ? "opacity-40" : ""}`}
                 >
+                  <Picked on={on} />
                   <span className="block font-display text-xl font-semibold">{p.durationMinutes} min</span>
                   <span className="text-sm text-stone-500">{money(p.priceCents)}</span>
                 </button>
@@ -393,10 +424,11 @@ export function BookingWizard(props: WizardProps) {
 
       {step === 2 && instructors && (
         <section className="space-y-5">
-          <Heading title="Pick an instructor" sub="Everyone's CPR- and lifeguard-certified. Choose someone, or we'll match you." />
+          <Heading title="Who would you like to swim with?" sub="Everyone's CPR- and lifeguard-certified. Choose someone, or we'll match you." />
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             <button onClick={() => setInstructorId(null)} className="text-left">
-              <div className={`card flex h-full flex-col justify-center gap-1 border-2 ${instructorId === null ? "border-brand-500" : "border-transparent"}`}>
+              <div className={`card relative flex h-full flex-col justify-center gap-1 border-2 ${instructorId === null ? "border-brand-500" : "border-transparent"}`}>
+                <Picked on={instructorId === null} />
                 <p className="font-display text-lg font-semibold">Whoever&apos;s available</p>
                 <p className="text-sm text-stone-600">You&apos;ll see the most times. We pick the best fit for your kids and schedule.</p>
               </div>
@@ -405,7 +437,8 @@ export function BookingWizard(props: WizardProps) {
               .sort((a, b) => Number(b.id === props.favoriteInstructorId) - Number(a.id === props.favoriteInstructorId))
               .slice(0, 6)
               .map((i) => (
-                <button key={i.id} onClick={() => setInstructorId(i.id)} className="text-left">
+                <button key={i.id} onClick={() => setInstructorId(i.id)} className="relative text-left">
+                  <Picked on={instructorId === i.id} />
                   <InstructorCard instructor={i} favorite={i.id === props.favoriteInstructorId} selected={instructorId === i.id} />
                 </button>
               ))}
@@ -459,7 +492,7 @@ export function BookingWizard(props: WizardProps) {
       {step === 4 && (
         <section className="space-y-5">
           <div className="flex items-end justify-between gap-3">
-            <Heading title={weeks ? "Pick your weekly time" : "Pick a time"} sub={weeks ? `Same time each week for ${weeks} weeks.` : "San Diego time."} />
+            <Heading title={weeks ? "Pick your weekly time" : "When works for you?"} sub={weeks ? `Same time each week for ${weeks} weeks.` : "San Diego time."} />
             <div className="flex shrink-0 gap-1.5">
               <button className="btn-secondary px-3" aria-label="Earlier week" disabled={weekStart <= addDays(props.today, 1) || slotsLoading} onClick={() => setWeekStart(addDays(weekStart, -7))}>
                 ←
@@ -519,7 +552,7 @@ export function BookingWizard(props: WizardProps) {
 
       {step === 5 && slot && zone && duration && (
         <section className="space-y-5">
-          <Heading title="Look good?" />
+          <Heading title="Ready to dive in?" sub="Check the details, then you're all set." />
           <div className="grid gap-4 lg:grid-cols-5">
             <div className="card space-y-4 lg:col-span-3">
               <p className="font-display text-xl font-semibold">
@@ -585,6 +618,11 @@ export function BookingWizard(props: WizardProps) {
           />
         </section>
       )}
+      </div>
+      <div className="hidden lg:block">
+        <SwimPass items={pass} current={step} onJump={jump} total={runningTotal === null ? null : money(runningTotal)} />
+      </div>
+      </div>
     </div>
   );
 }
@@ -619,11 +657,16 @@ function Actions({ onBack, primary, onPrimary, disabled, note }: { onBack?: () =
 
 function PlanOption({ title, tag, quote, note, selected, onClick }: { title: string; tag?: string; quote?: Quote; note?: string; selected: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`flex w-full items-center justify-between gap-3 rounded-2xl border-2 bg-white px-4 py-3.5 text-left transition ${selected ? "border-brand-500" : "border-transparent"}`}>
-      <span>
+    <button onClick={onClick} className={`flex w-full items-center justify-between gap-3 rounded-2xl border-2 bg-white px-4 py-3.5 text-left transition ${selected ? "border-brand-500 shadow-md" : "border-transparent hover:border-brand-200"}`}>
+      <span className="flex items-center gap-3">
+        <span aria-hidden className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition ${selected ? "border-brand-600 bg-brand-600" : "border-stone-300"}`}>
+          {selected && <span className="h-2 w-2 animate-pop rounded-full bg-white" />}
+        </span>
+        <span>
         <span className="font-medium text-stone-900">{title}</span>
         {tag && <span className="badge ml-2 bg-coral-50 text-coral-700">{tag}</span>}
         {note && <span className="block text-sm text-stone-500">{note}</span>}
+        </span>
       </span>
       {quote && (
         <span className="shrink-0 text-right">
