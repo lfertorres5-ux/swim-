@@ -1,6 +1,6 @@
 import { ActionForm, Field } from "@/components/action-form";
 import { truemedConfigured } from "@/lib/payments/truemed";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { savePolicies } from "../actions";
 
 function Group({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
@@ -15,8 +15,8 @@ function Group({ title, note, children }: { title: string; note?: string; childr
 }
 
 export default async function Policies() {
-  const supabase = await createClient();
-  const { data: s } = await supabase.from("platform_settings").select("*").single();
+  // Full settings (incl. pay and internal timings) are server-only: read with the service role behind the admin layout.
+  const { data: s } = await createAdminClient().from("platform_settings").select("*").single();
   if (!s) return null;
   return (
     <ActionForm action={savePolicies} submitLabel="Save policies" className="space-y-6">

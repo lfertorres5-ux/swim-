@@ -186,6 +186,18 @@ describe("anonymous visitors", () => {
       await expectSqlError(db, "select * from public.instructor_lessons(current_date, current_date)", [], PERMISSION_DENIED);
     });
   });
+
+  it("reads public policy settings but not internal ones (pay rate, buffers, hold times)", async () => {
+    for (const run of [asAnon, (fn: Parameters<typeof asAnon>[0]) => asUser(f.parent1, fn), (fn: Parameters<typeof asAnon>[0]) => asUser(f.instructorA, fn)]) {
+      await run(async (db) => {
+        const { rows } = await db.query("select cancellation_window_hours, support_email, day_pass_enabled, instructor_terms_version from public.platform_settings");
+        expect(rows).toHaveLength(1);
+        for (const col of ["default_instructor_pay_cents_per_hour", "default_travel_buffer_minutes", "payment_hold_minutes", "offer_min_lead_minutes", "*"]) {
+          await expectSqlError(db, `select ${col} from public.platform_settings`, [], PERMISSION_DENIED);
+        }
+      });
+    }
+  });
 });
 
 describe("admin", () => {

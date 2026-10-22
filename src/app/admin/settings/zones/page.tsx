@@ -1,6 +1,7 @@
 import { ActionForm, Field } from "@/components/action-form";
 import { ServiceAreaMap } from "@/components/landing/service-area-map";
 import type { GeoJsonPolygon } from "@/lib/geo/san-diego-county";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { saveTravelBuffers, saveZone } from "../actions";
 
@@ -53,7 +54,7 @@ export default async function Zones() {
   const [{ data: zones }, { data: buffers }, { data: settings }] = await Promise.all([
     supabase.from("zones").select("*").order("sort_order").order("code"),
     supabase.from("zone_travel_buffers").select("*"),
-    supabase.from("platform_settings").select("default_travel_buffer_minutes").single(),
+    createAdminClient().from("platform_settings").select("default_travel_buffer_minutes").single(),
   ]);
   const list = (zones ?? []) as Zone[];
   const buffer = (a: string, b: string) => buffers?.find((x) => x.from_zone_id === a && x.to_zone_id === b)?.buffer_minutes;

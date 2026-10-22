@@ -19,7 +19,7 @@ export default async function AdminInstructors() {
       .order("is_active", { ascending: false })
       .order("first_name"),
     supabase.from("instructor_invites").select("id, email, pay_rate_cents_per_hour, expires_at, created_at").is("accepted_at", null).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
-    supabase.from("platform_settings").select("default_instructor_pay_cents_per_hour, instructor_terms_version").single(),
+    createAdminClient().from("platform_settings").select("default_instructor_pay_cents_per_hour, instructor_terms_version").single(),
     createAdminClient().from("availability_rules").select("instructor_id"),
   ]);
   const hasHours = new Set((rules ?? []).map((r) => r.instructor_id));
