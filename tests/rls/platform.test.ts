@@ -134,20 +134,12 @@ describe("parents are isolated from each other", () => {
 });
 
 describe("messaging integrity", () => {
-  it("sender cannot be spoofed and sender_role is derived server-side", async () => {
-    await asUser(f.instructorA, async (db) => {
-      await expectSqlError(
-        db,
-        "insert into public.messages (booking_id, sender_id, body) values ($1, $2, 'pretending to be the parent')",
-        [f.bookings.aNow, f.parent1],
-        PERMISSION_DENIED,
-      );
-      const { rows } = await db.query(
-        "insert into public.messages (booking_id, body) values ($1, 'On my way') returning sender_id, sender_role",
-        [f.bookings.aNow],
-      );
-      expect(rows[0]).toEqual({ sender_id: f.instructorA, sender_role: "instructor" });
-    });
+  it("nobody can post messages directly (closed until in-app chat ships with screening)", async () => {
+    for (const who of [f.instructorA, f.parent1]) {
+      await asUser(who, async (db) => {
+        await expectSqlError(db, "insert into public.messages (booking_id, body) values ($1, 'call me at 619 555 0100')", [f.bookings.aNow], PERMISSION_DENIED);
+      });
+    }
   });
 
   it("message bodies cannot be edited after sending", async () => {

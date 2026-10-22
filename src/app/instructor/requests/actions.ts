@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth";
 import { notifyAccepted, safely } from "@/lib/notifications/events";
 import { offerNextInstructor } from "@/lib/scheduling/offers";
 import { createClient } from "@/lib/supabase/server";
+import { flashQuery } from "@/lib/flash";
 
 export async function respondToRequest(formData: FormData) {
   await requireRole("instructor");
@@ -25,7 +26,7 @@ export async function respondToRequest(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/instructor/requests?error=${encodeURIComponent(error.code === "SB002" ? "That request was already answered or reassigned." : "Couldn't record your response.")}`);
+    redirect(`/instructor/requests?${flashQuery("error", error.code === "SB002" ? "That request was already answered or reassigned." : "Couldn't record your response.")}`);
   }
 
   if (outcome === "accepted" && offer?.booking_id) {

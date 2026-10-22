@@ -70,23 +70,40 @@ export async function cancelBooking(parentId: string, bookingId: string, reason:
   let refundId: string | null = null;
   let manualRefundCents = 0;
 
-  if (preview.refundCents > 0 && booking.payment_id) {
-    try {
-      refundId = (await refundPayment(booking.payment_id, preview.refundCents, `cancel-${bookingId}`, { booking_id: bookingId })).refundId;
-    } catch (err) {
-      if (!(err instanceof RefundError)) throw err;
-      if (!err.manual) throw new BookingError("refund_unavailable", "We couldn't find the payment for this lesson — please contact us.");
-      // HSA/FSA (Truemed): cancel now; the owner refunds from Truemed and is alerted below.
-      manualRefundCents = preview.refundCents;
-    }
-  }
-
-  if (preview.restoreCredit && booking.package_id) await admin.rpc("restore_package_credit", { p_package_id: booking.package_id });
-
-  await admin
+  // Claim the cancellation first, atomically: only one request can move this
+  // lesson out of an active status, so a double-click (or a parent and the
+  // owner at the same moment) can't refund or return a credit twice.
+  const { data: claimed } = await admin
     .from("bookings")
     .update({ status: "cancelled", cancelled_at: new Date(now).toISOString(), cancelled_by: parentId, cancellation_reason: reason?.slice(0, 500) ?? null, needs_attention: false })
-    .eq("id", bookingId);
+    .eq("id", bookingId)
+    .eq("parent_id", parentId)
+    .in("status", ACTIVE)
+    .select("id");
+  if (!claimed?.length) throw new BookingError("not_cancellable", "This lesson can't be cancelled.");
+
+  try {
+    if (preview.refundCents > 0 && booking.payment_id) {
+      try {
+        refundId = (await refundPayment(booking.payment_id, preview.refundCents, `cancel-${bookingId}`, { booking_id: bookingId })).refundId;
+      } catch (err) {
+        if (!(err instanceof RefundError)) throw err;
+        if (!err.manual) throw new BookingError("refund_unavailable", "We couldn't find the payment for this lesson — please contact us.");
+        // HSA/FSA (Truemed): cancel now; the owner refunds from Truemed and is alerted below.
+        manualRefundCents = preview.refundCents;
+      }
+    }
+    if (preview.restoreCredit && booking.package_id) await admin.rpc("restore_package_credit", { p_package_id: booking.package_id });
+  } catch (err) {
+    // Nothing was refunded or restored: put the lesson back as it was.
+    await admin
+      .from("bookings")
+      .update({ status: booking.status, cancelled_at: null, cancelled_by: null, cancellation_reason: null })
+      .eq("id", bookingId)
+      .eq("status", "cancelled");
+    throw err;
+  }
+
   await admin.from("booking_offers").update({ status: "superseded" }).eq("booking_id", bookingId).eq("status", "pending");
   await admin.from("open_shifts").update({ status: "cancelled" }).eq("booking_id", bookingId).in("status", ["open", "pending_approval"]);
 

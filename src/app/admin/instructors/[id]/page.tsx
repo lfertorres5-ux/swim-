@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -11,6 +12,7 @@ import { formatCents, one } from "@/lib/utils";
 import { addCertification, deleteCertification, setInstructorActive, setPayRate, verifyCertification } from "../actions";
 
 export default async function AdminInstructor({ params }: PageProps<"/admin/instructors/[id]">) {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const { id } = await params;
   const supabase = await createClient();
   const today = laDateString();

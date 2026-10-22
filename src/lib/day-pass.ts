@@ -30,10 +30,18 @@ export const dayPassInquirySchema = z.object({
 export type DayPassInquiryInput = z.input<typeof dayPassInquirySchema>;
 
 export const MAX_INQUIRIES_PER_DAY = 3;
+/** Per network (hashed IP), across any emails, so the form can't be used to flood the inbox. */
+export const MAX_INQUIRIES_PER_CLIENT_PER_DAY = 5;
 
 export type InquiryResult = { ok: true; id: string | null } | { ok: false; error: string };
 
-export async function submitDayPassInquiry(raw: DayPassInquiryInput, parentId: string | null, now = Date.now()): Promise<InquiryResult> {
+export async function submitDayPassInquiry(
+  raw: DayPassInquiryInput,
+  parentId: string | null,
+  opts: { clientKey?: string | null; now?: number } = {},
+): Promise<InquiryResult> {
+  const now = opts.now ?? Date.now();
+  const clientKey = opts.clientKey ?? null;
   const admin = createAdminClient();
   const { data: settings } = await admin.from("platform_settings").select("day_pass_enabled").single();
   if (!settings?.day_pass_enabled) return { ok: false, error: "Day pass inquiries are paused right now." };
@@ -48,8 +56,13 @@ export async function submitDayPassInquiry(raw: DayPassInquiryInput, parentId: s
   if (q.preferredDates.some((d) => d < today || d > addDays(today, 365))) return { ok: false, error: "Pick dates in the next year." };
 
   const since = new Date(now - 86_400_000).toISOString();
-  const { count } = await admin.from("day_pass_inquiries").select("id", { count: "exact", head: true }).ilike("contact_email", q.contactEmail).gte("created_at", since);
+  const email = q.contactEmail.toLowerCase();
+  const { count } = await admin.from("day_pass_inquiries").select("id", { count: "exact", head: true }).eq("contact_email", email).gte("created_at", since);
   if ((count ?? 0) >= MAX_INQUIRIES_PER_DAY) return { ok: false, error: "We already have your inquiry — we'll be in touch soon." };
+  if (clientKey) {
+    const { count: fromClient } = await admin.from("day_pass_inquiries").select("id", { count: "exact", head: true }).eq("client_key", clientKey).gte("created_at", since);
+    if ((fromClient ?? 0) >= MAX_INQUIRIES_PER_CLIENT_PER_DAY) return { ok: false, error: "We already have your inquiry — we'll be in touch soon." };
+  }
 
   const phone = q.contactPhone ? (q.contactPhone.startsWith("+") ? q.contactPhone : `+1${q.contactPhone.replace(/^1/, "")}`) : null;
   const { data, error } = await admin
@@ -57,7 +70,8 @@ export async function submitDayPassInquiry(raw: DayPassInquiryInput, parentId: s
     .insert({
       parent_id: parentId,
       contact_name: q.contactName,
-      contact_email: q.contactEmail.toLowerCase(),
+      contact_email: email,
+      client_key: clientKey,
       contact_phone: phone,
       adults_count: q.adults,
       children_count: q.children,

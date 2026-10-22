@@ -381,3 +381,31 @@ describe("platform terms gate", () => {
     });
   });
 });
+
+describe("contact details stay out of instructor profiles and old bookings", () => {
+  it("a bio or first name with a phone, email, link or handle is rejected", async () => {
+    for (const bio of [
+      "Former D1 swimmer, text me at (619) 555-0100 to book directly",
+      "Former D1 swimmer — email coach.sam at gmail dot com for lessons",
+      "Former D1 swimmer, see my site swimwithsam.com for more lessons",
+      "Former D1 swimmer, find me on insta @samswims for direct bookings",
+      "Former D1 swimmer, Venmo me and skip the platform fees entirely ok",
+    ]) {
+      await asUser(f.instructorA, async (db) => {
+        await expectSqlError(db, "update public.instructors set bio = $1 where id = $2", [bio, f.instructorA], CHECK_VIOLATION);
+      });
+    }
+    await asUser(f.instructorA, async (db) => {
+      await expectSqlError(db, "update public.instructors set first_name = 'Sam 6195550100' where id = $1", [f.instructorA], CHECK_VIOLATION);
+      const ok = await db.query("update public.instructors set bio = 'Swam D1 2015-2020, WSI certified, 8 years teaching kids ages 3 to 12.' where id = $1 returning id", [f.instructorA]);
+      expect(ok.rowCount).toBe(1);
+    });
+  });
+
+  it("an instructor can't read their cancelled bookings (parents' cancellation reasons)", async () => {
+    await asUser(f.instructorA, async (db) => {
+      expect((await db.query("select id from public.bookings where id = $1", [f.bookings.aCancelled])).rowCount).toBe(0);
+      expect((await db.query("select id from public.bookings where id = $1", [f.bookings.aFuture])).rowCount).toBe(1);
+    });
+  });
+});

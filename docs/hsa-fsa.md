@@ -11,7 +11,7 @@ card. **Truemed is the merchant of record** for these payments and decides eligi
 2. In Vercel → **swim → Settings → Environment Variables** add:
    - `TRUEMED_API_KEY` — from Truemed
    - `TRUEMED_SANDBOX` = `true` while testing (uses `dev-api.truemed.com`); remove it to go live
-   - `TRUEMED_WEBHOOK_KEY` — only if Truemed gives you a separate webhook key (otherwise the API key is used)
+   - `TRUEMED_WEBHOOK_KEY` — **required**: the separate key Truemed sends on webhooks. The HSA/FSA option stays hidden until it's set; the API key is never accepted on webhooks.
 3. In Truemed's dashboard set the webhook URL to `https://<your site>/api/webhooks/truemed`
    (`payment_session_complete` events).
 4. Redeploy, then **Admin → Settings → Policies → HSA/FSA payments → Offer “Pay with HSA/FSA”**.

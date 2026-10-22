@@ -57,7 +57,12 @@ export async function saveInstructorProfile(_prev: ProfileFormState, formData: F
       is_accepting_new_clients: v.isAcceptingNewClients,
     })
     .eq("id", user.id);
-  if (error) return { error: error.code === "23514" ? "Please check your first name and bio." : "Couldn't save your profile." };
+  if (error) {
+    if (error.message.includes("no_contact_info")) {
+      return { error: "Please remove phone numbers, emails, links and social handles from your name and bio — families contact you through the app." };
+    }
+    return { error: error.code === "23514" ? "Please check your first name and bio." : "Couldn't save your profile." };
+  }
 
   revalidatePath("/instructor", "layout");
   return { ok: true };

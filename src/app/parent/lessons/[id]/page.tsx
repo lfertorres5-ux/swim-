@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { readFlash } from "@/lib/flash";
 import { notFound } from "next/navigation";
 import { InstructorCard } from "@/components/instructor-card";
 import { requireRole } from "@/lib/auth";
@@ -13,7 +14,9 @@ import { ReschedulePicker } from "./reschedule-picker";
 export default async function LessonDetail({ params, searchParams }: PageProps<"/parent/lessons/[id]">) {
   const user = await requireRole("parent");
   const { id } = await params;
-  const { error, cancelled } = await searchParams;
+  const sp = await searchParams;
+  const { cancelled } = sp;
+  const error = readFlash(sp, "error");
   const supabase = await createClient();
 
   const { data: b } = await supabase
@@ -47,7 +50,7 @@ export default async function LessonDetail({ params, searchParams }: PageProps<"
           {formatDateTime(b.starts_at)}–{formatTime(b.ends_at)}
         </h1>
         {cancelled && <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Lesson cancelled.</p>}
-        {typeof error === "string" && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
         <dl className="card grid grid-cols-3 gap-y-2 text-sm">
           <dt className="text-stone-500">Status</dt>

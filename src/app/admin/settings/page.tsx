@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import { ActionForm, Field } from "@/components/action-form";
 import { createClient } from "@/lib/supabase/server";
 import { formatCents } from "@/lib/utils";
@@ -6,6 +7,7 @@ import { savePackage, saveLessonPrice, savePricingRules } from "./actions";
 const dollars = (c: number) => (c / 100).toFixed(c % 100 ? 2 : 0);
 
 export default async function PricesAndPackages() {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const supabase = await createClient();
   const [{ data: prices }, { data: config }, { data: packages }] = await Promise.all([
     supabase.from("lesson_prices").select("*").order("duration_minutes"),

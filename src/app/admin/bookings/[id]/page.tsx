@@ -1,3 +1,5 @@
+import { requireRole } from "@/lib/auth";
+import { readFlash } from "@/lib/flash";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionForm, Field } from "@/components/action-form";
@@ -14,6 +16,7 @@ type Offer = { instructor: { first_name: string } | { first_name: string }[] | n
 const dollars = (c: number) => (c / 100).toFixed(2);
 
 export default async function AdminBooking({ params, searchParams }: PageProps<"/admin/bookings/[id]">) {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
@@ -51,7 +54,7 @@ export default async function AdminBooking({ params, searchParams }: PageProps<"
         ← Bookings
       </Link>
       {sp.created && <p className="rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">Booking created.</p>}
-      {typeof sp.notice === "string" && <p className="rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">{sp.notice.slice(0, 200)}</p>}
+      {readFlash(sp, "notice") && <p className="rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">{readFlash(sp, "notice")}</p>}
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold">
           {formatDate(b.starts_at, { weekday: "long", month: "long", day: "numeric" })} · {formatTime(b.starts_at)}–{formatTime(b.ends_at)}

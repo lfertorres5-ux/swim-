@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import { ActionForm, Field } from "@/components/action-form";
 import { ServiceAreaMap } from "@/components/landing/service-area-map";
 import type { GeoJsonPolygon } from "@/lib/geo/san-diego-county";
@@ -50,6 +51,7 @@ function ZoneForm({ z }: { z?: Zone }) {
 }
 
 export default async function Zones() {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const supabase = await createClient();
   const [{ data: zones }, { data: buffers }, { data: settings }] = await Promise.all([
     supabase.from("zones").select("*").order("sort_order").order("code"),

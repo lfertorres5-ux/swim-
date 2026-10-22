@@ -22,8 +22,20 @@ export async function handleTruemedEvent(event: TruemedEvent): Promise<{ handled
 
   const { data: payment } = await admin.from("payments").select("id, amount_cents").eq("processor", "truemed").eq("processor_session_id", event.sessionId).maybeSingle();
   let handled = false;
-  if (payment && event.status === "captured") {
-    await fulfillPayment({ paymentId: payment.id, sessionId: event.sessionId, paymentIntentId: null, amountTotal: null, receiptUrl: null, chargeId: null });
+  const amountMismatch = payment && event.amountCents != null && event.amountCents !== payment.amount_cents;
+  if (payment && event.status === "captured" && amountMismatch) {
+    // Never book on a capture for a different amount; the hold lapses and the owner reviews it.
+    await admin.from("audit_log").insert({
+      action: "system.payment_amount_mismatch",
+      entity_type: "payment",
+      entity_id: payment.id,
+      metadata: { processor: "truemed", expected: payment.amount_cents, received: event.amountCents },
+    });
+    // Don't consume the de-dupe key: a corrected delivery must still apply.
+    await admin.from("stripe_events").delete().eq("id", eventId);
+    return { handled: false };
+  } else if (payment && event.status === "captured") {
+    await fulfillPayment({ paymentId: payment.id, sessionId: event.sessionId, paymentIntentId: null, amountTotal: event.amountCents ?? null, receiptUrl: null, chargeId: null });
     handled = true;
   } else if (payment && FAILED.has(event.status)) {
     await releaseCheckout(payment.id);

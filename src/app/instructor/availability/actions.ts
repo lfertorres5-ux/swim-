@@ -6,13 +6,14 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { laDateString, parseTimeOfDay } from "@/lib/time";
+import { flashQuery } from "@/lib/flash";
 
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Pick a time");
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date");
 
 function done(error?: string): never {
   revalidatePath("/instructor", "layout");
-  redirect(error ? `/instructor/availability?error=${encodeURIComponent(error)}` : "/instructor/availability");
+  redirect(error ? `/instructor/availability?${flashQuery("error", error)}` : "/instructor/availability");
 }
 
 export async function addWeeklyHours(formData: FormData) {

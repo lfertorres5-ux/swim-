@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import Link from "next/link";
 import { loadDashboard } from "@/lib/admin/dashboard";
 import { CERT_LABELS } from "@/lib/admin/certs";
@@ -17,6 +18,7 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
 }
 
 export default async function AdminHome() {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const d = await loadDashboard();
   const todoCount = d.todo.attention.length + d.todo.approvals.length + d.todo.inquiries.length + d.todo.certs.length;
 

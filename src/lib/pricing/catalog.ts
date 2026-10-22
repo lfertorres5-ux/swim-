@@ -23,19 +23,25 @@ export async function loadCatalog(): Promise<Catalog> {
   };
 }
 
+/** Same alphabet the admin form allows when creating codes. */
+export const PROMO_CODE_FORMAT = /^[A-Z0-9_-]{3,30}$/;
+
 export type PromoLookup = { ok: true; promo: PromoCode } | { ok: false; message: string };
 
 /** Validate a promo code server-side for a plan kind. */
 export async function lookupPromo(code: string, kind: PlanKind, now = Date.now()): Promise<PromoLookup> {
   const normalized = code.trim().toUpperCase();
   if (!normalized) return { ok: false, message: "Enter a code" };
+  const invalid = { ok: false as const, message: "That code isn't valid." };
+  // Exact match only: codes are stored uppercase, and anything outside this
+  // alphabet (e.g. % or _ wildcards) can never match a real code.
+  if (!PROMO_CODE_FORMAT.test(normalized)) return invalid;
   const admin = createAdminClient();
   const { data } = await admin
     .from("discount_codes")
     .select("id, code, percent_off, amount_off_cents, applies_to, is_active, valid_from, valid_until, max_redemptions, redemptions")
-    .ilike("code", normalized)
+    .eq("code", normalized)
     .maybeSingle();
-  const invalid = { ok: false as const, message: "That code isn't valid." };
   if (!data || !data.is_active) return invalid;
   if (data.valid_from && Date.parse(data.valid_from) > now) return invalid;
   if (data.valid_until && Date.parse(data.valid_until) < now) return { ok: false, message: "That code has expired." };

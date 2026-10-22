@@ -13,8 +13,9 @@ import { timingSafeEqual } from "node:crypto";
  * Truemed sandbox (TRUEMED_SANDBOX=true) before going live — see docs/hsa-fsa.md.
  */
 
+/** Both keys are required: without a dedicated webhook key we could not trust "captured". */
 export function truemedConfigured(): boolean {
-  return Boolean(process.env.TRUEMED_API_KEY);
+  return Boolean(process.env.TRUEMED_API_KEY && process.env.TRUEMED_WEBHOOK_KEY);
 }
 
 function baseUrl() {
@@ -60,16 +61,20 @@ export async function createTruemedSession(p: {
   return { sessionId: body.id, url: body.redirect_url };
 }
 
-/** Truemed authenticates webhooks with the x-truemed-api-key header. */
+/**
+ * Truemed authenticates webhooks with the x-truemed-api-key header. We require
+ * a dedicated TRUEMED_WEBHOOK_KEY (never the API key), so a leaked API key
+ * alone can't forge a "captured" event.
+ */
 export function verifyTruemedWebhook(headerValue: string | null): boolean {
-  const expected = process.env.TRUEMED_WEBHOOK_KEY || process.env.TRUEMED_API_KEY;
+  const expected = process.env.TRUEMED_WEBHOOK_KEY;
   if (!expected || !headerValue) return false;
   const a = Buffer.from(headerValue);
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export type TruemedEvent = { sessionId: string; status: string; type: string | null };
+export type TruemedEvent = { sessionId: string; status: string; type: string | null; amountCents?: number | null };
 
 /** Pull the session id and status out of a webhook body (tolerant of nesting). */
 export function parseTruemedEvent(body: unknown): TruemedEvent | null {
@@ -79,5 +84,7 @@ export function parseTruemedEvent(body: unknown): TruemedEvent | null {
   const sessionId = (data.payment_id ?? data.payment_session_id ?? data.id) as string | undefined;
   const status = (data.status ?? data.payment_status) as string | undefined;
   if (!sessionId || !status) return null;
-  return { sessionId: String(sessionId), status: String(status).toLowerCase(), type: (b.type ?? b.event ?? b.event_type ?? null) as string | null };
+  const amount = data.total_amount ?? data.amount ?? data.amount_cents;
+  const amountCents = typeof amount === "number" && Number.isInteger(amount) ? amount : null;
+  return { sessionId: String(sessionId), status: String(status).toLowerCase(), type: (b.type ?? b.event ?? b.event_type ?? null) as string | null, amountCents };
 }

@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { ActionForm, Field } from "@/components/action-form";
@@ -10,6 +11,7 @@ import { formatCents, one } from "@/lib/utils";
 import { inviteInstructor, revokeInvite } from "./actions";
 
 export default async function AdminInstructors() {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const supabase = await createClient();
   const today = laDateString();
   const [{ data: instructors }, { data: invites }, { data: settings }, { data: rules }] = await Promise.all([

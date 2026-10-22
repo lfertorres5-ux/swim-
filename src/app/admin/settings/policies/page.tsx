@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import { ActionForm, Field } from "@/components/action-form";
 import { truemedConfigured } from "@/lib/payments/truemed";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -15,6 +16,7 @@ function Group({ title, note, children }: { title: string; note?: string; childr
 }
 
 export default async function Policies() {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   // Full settings (incl. pay and internal timings) are server-only: read with the service role behind the admin layout.
   const { data: s } = await createAdminClient().from("platform_settings").select("*").single();
   if (!s) return null;

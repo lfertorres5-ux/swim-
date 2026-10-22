@@ -1,5 +1,6 @@
 "use server";
 
+import { flashQuery } from "@/lib/flash";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { FormState } from "@/components/action-form";
@@ -30,7 +31,7 @@ export async function cancelAction(_: FormState, fd: FormData): Promise<FormStat
     summary = `Cancelled.${r.refundedCents ? ` Refunded $${(r.refundedCents / 100).toFixed(2)}.` : ""}${r.creditRestored ? " Credit returned to the package." : ""}`;
   });
   // The cancel form disappears once the lesson is cancelled, so show the result on the page.
-  if (state.ok) redirect(`/admin/bookings/${bookingId}?notice=${encodeURIComponent(summary)}`);
+  if (state.ok) redirect(`/admin/bookings/${bookingId}?${flashQuery("notice", summary)}`);
   return state;
 }
 

@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/time";
@@ -11,6 +12,7 @@ const FILTERS = [
 ] as const;
 
 export default async function Activity({ searchParams }: PageProps<"/admin/activity">) {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const sp = await searchParams;
   const f = FILTERS.find((x) => x.key === sp.f) ?? FILTERS[0];
   const supabase = await createClient();

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCents } from "@/lib/utils";
 import { formatDate, formatTimeOfDay, laDateString, parseTimeOfDay } from "@/lib/time";
 import { addDateOverride, addWeeklyHours, removeDateOverride, removeWeeklyHours, saveZones } from "./actions";
+import { readFlash } from "@/lib/flash";
 
 export const metadata: Metadata = { title: "Availability" };
 
@@ -18,7 +19,7 @@ function label(t: string) {
 
 export default async function AvailabilityPage({ searchParams }: PageProps<"/instructor/availability">) {
   const { user } = await getInstructorContext();
-  const { error } = await searchParams;
+  const error = readFlash(await searchParams, "error");
   const supabase = await createClient();
   const today = laDateString();
 

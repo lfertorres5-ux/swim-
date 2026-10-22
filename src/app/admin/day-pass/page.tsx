@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import Link from "next/link";
 import { ActionForm, Field } from "@/components/action-form";
 import { createClient } from "@/lib/supabase/server";
@@ -10,6 +11,7 @@ const INTEREST: Record<string, string> = { just_curious: "Just curious", interes
 const label = (s: string) => s.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase());
 
 export default async function DayPassInbox({ searchParams }: PageProps<"/admin/day-pass">) {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const sp = await searchParams;
   const showAll = sp.show === "all";
   const supabase = await createClient();

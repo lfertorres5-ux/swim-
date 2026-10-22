@@ -69,8 +69,4 @@ export function homeForRole(role: Role): string {
   }
 }
 
-/** Only allow same-origin relative redirects (blocks //evil.com and absolute URLs). */
-export function safeNextPath(next: string | null | undefined, fallback = "/dashboard"): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
-  return next;
-}
+export { safeNextPath } from "@/lib/safe-path";

@@ -1,5 +1,6 @@
 "use server";
 
+import { flashQuery } from "@/lib/flash";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -21,7 +22,7 @@ export async function cancelLessonAction(formData: FormData) {
     await cancelBooking(user.id, id, String(formData.get("reason") ?? "") || null);
   } catch (err) {
     const msg = err instanceof BookingError ? err.message : "Couldn't cancel this lesson. Please contact us.";
-    redirect(`/parent/lessons/${id}?error=${encodeURIComponent(msg)}`);
+    redirect(`/parent/lessons/${id}?${flashQuery("error", msg)}`);
   }
   revalidatePath("/parent", "layout");
   redirect(`/parent/lessons/${id}?cancelled=1`);

@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import Link from "next/link";
 import { BOOKING_STATUS } from "@/lib/admin/labels";
 import { createClient } from "@/lib/supabase/server";
@@ -12,6 +13,7 @@ const VIEWS = [
 ] as const;
 
 export default async function AdminBookings({ searchParams }: PageProps<"/admin/bookings">) {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const sp = await searchParams;
   const view = (VIEWS.find((v) => v.key === sp.view)?.key ?? "upcoming") as (typeof VIEWS)[number]["key"];
   const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 60) : "";

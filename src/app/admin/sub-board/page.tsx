@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
 import { createClient } from "@/lib/supabase/server";
@@ -9,6 +10,7 @@ type Summary = { duration_minutes?: number; swimmers?: { age: number | null; swi
 const who = (s: Summary) => (s.swimmers ?? []).map((x) => `${x.age ?? "?"}y ${x.swim_level.replaceAll("_", " ")}`).join(", ");
 
 export default async function AdminSubBoard({ searchParams }: PageProps<"/admin/sub-board">) {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const { done } = await searchParams;
   const supabase = await createClient();
   const [{ data: shifts }, { data: settings }] = await Promise.all([

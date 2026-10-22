@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { laDateString, addDays } from "@/lib/time";
@@ -5,6 +6,7 @@ import { one } from "@/lib/utils";
 import { ManualBookingForm, type FamilyOption } from "./manual-booking-form";
 
 export default async function NewBooking() {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const supabase = await createClient();
   const [{ data: parents }, { data: instructors }, { data: prices }] = await Promise.all([
     supabase.from("parents").select("id, address_line1, address_line2, city, postal_code, access_notes, user:users!inner(first_name, last_name, email, role), children(id, first_name, is_active)").eq("user.role", "parent").limit(1000),

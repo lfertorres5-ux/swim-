@@ -20,7 +20,7 @@ export class RefundError extends Error {
  */
 export async function refundPayment(paymentId: string, amountCents: number, idempotencyKey: string, metadata: Record<string, string> = {}) {
   const admin = createAdminClient();
-  const { data: payment } = await admin.from("payments").select("id, status, processor, amount_cents, refunded_cents, stripe_payment_intent_id, stripe_refund_ids").eq("id", paymentId).single();
+  const { data: payment } = await admin.from("payments").select("id, status, processor, amount_cents, refunded_cents, stripe_payment_intent_id").eq("id", paymentId).single();
   if (!payment || !["succeeded", "partially_refunded"].includes(payment.status)) throw new RefundError("This payment can't be refunded.");
   if (payment.processor === "truemed") throw new RefundError("This was an HSA/FSA payment through Truemed. Issue the refund from your Truemed dashboard.", true);
   if (!payment.stripe_payment_intent_id) throw new RefundError("This payment wasn't made by card in the app, so there's nothing to refund through Stripe.");
@@ -28,15 +28,9 @@ export async function refundPayment(paymentId: string, amountCents: number, idem
   if (amount <= 0) return { refundedCents: 0, refundId: null as string | null };
 
   const refund = await paymentsGateway().refund({ paymentIntentId: payment.stripe_payment_intent_id, amountCents: amount, idempotencyKey, metadata: { payment_id: payment.id, ...metadata } });
-  const refunded = payment.refunded_cents + amount;
-  const { error } = await admin
-    .from("payments")
-    .update({
-      refunded_cents: refunded,
-      status: refunded >= payment.amount_cents ? "refunded" : "partially_refunded",
-      stripe_refund_ids: [...(payment.stripe_refund_ids ?? []), refund.refundId],
-    })
-    .eq("id", payment.id);
+  // Recorded atomically in SQL (refunded_cents = refunded_cents + amount), so
+  // concurrent refunds can't overwrite each other or exceed the payment.
+  const { error } = await admin.rpc("record_refund", { p_payment_id: payment.id, p_amount_cents: amount, p_refund_id: refund.refundId });
   if (error) throw new Error(`refund ${refund.refundId} issued but not recorded: ${error.message}`);
   return { refundedCents: amount, refundId: refund.refundId as string | null };
 }

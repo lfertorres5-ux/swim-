@@ -241,6 +241,7 @@ export async function createBookingCheckout(parentId: string, raw: CheckoutInput
   if (holdError) {
     if (SLOT_TAKEN.has(holdError.code)) throw new BookingError("slot_unavailable", "Sorry — that time was just taken. Please pick another.");
     if (holdError.code === "SB004") throw new BookingError("invalid_credit", "No package credits left.");
+    if (holdError.code === "SB007") throw new BookingError("promo_exhausted", "That code is no longer available.");
     throw new Error(`create_booking_hold failed: ${holdError.message}`);
   }
   const { payment_id: paymentId, booking_ids: bookingIds } = hold as { payment_id: string | null; booking_ids: string[] };
@@ -425,8 +426,7 @@ export async function fulfillPayment(checkout: { paymentId: string; sessionId: s
     .or(payment.package_id ? `payment_id.eq.${payment.id},package_id.eq.${payment.package_id}` : `payment_id.eq.${payment.id}`)
     .eq("status", "pending_payment");
 
-  const codeId = bookings?.flatMap((b) => (Array.isArray(b.booking_pricing) ? b.booking_pricing : [b.booking_pricing])).find((p) => p?.discount_code_id)?.discount_code_id;
-  if (codeId) await admin.rpc("redeem_discount_code", { p_code_id: codeId });
+  // The promo use was already claimed atomically when the hold was created.
 
   for (const b of bookings ?? []) await openBookingRequest(b.id, now);
   await safely("booking received", () => notifyBookingReceived((bookings ?? []).map((b) => b.id as string)));

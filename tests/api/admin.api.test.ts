@@ -195,14 +195,29 @@ describe.skipIf(!enabled)("sub board, end to end", () => {
 describe.skipIf(!enabled)("day pass inquiries", () => {
   const base = { contactName: "Rosa Diaz", contactEmail: "rosa.diaz@example.com", adults: 2, children: 2, preferredDates: [addDays(laDateString(), 10)], interestLevel: "ready_to_book" as const, message: "Birthday!" };
 
-  it("saves the inquiry, thanks the family and alerts the owner", async () => {
-    const r = await dayPass.submitDayPassInquiry(base, null);
+  it("saves the inquiry and alerts the owner; a signed-out visitor's typed email gets nothing automatic", async () => {
+    const r = await dayPass.submitDayPassInquiry({ ...base, contactEmail: "Rosa.Diaz@example.com" }, null);
     expect(r.ok).toBe(true);
     if (!r.ok || !r.id) return;
     const { rows } = await db.query("select contact_email, adults_count, children_count, interest_level, status from public.day_pass_inquiries where id = $1", [r.id]);
     expect(rows[0]).toEqual({ contact_email: "rosa.diaz@example.com", adults_count: 2, children_count: 2, interest_level: "ready_to_book", status: "new" });
     const t = (await messages("dedupe_key like $1", [`daypass:${r.id}:%`])).map((m) => `${m.template}:${m.to_address}`);
-    expect(t).toEqual(expect.arrayContaining(["parent.day_pass_received:rosa.diaz@example.com", "admin.day_pass_inquiry:owner@example.com"]));
+    expect(t).toEqual(["admin.day_pass_inquiry:owner@example.com"]);
+  });
+
+  it("a signed-in parent using their own account email gets the thank-you", async () => {
+    const { rows } = await db.query("select id from public.users where email = 'emily@example.com'");
+    const r = await dayPass.submitDayPassInquiry({ ...base, contactName: "Emily", contactEmail: "emily@example.com" }, rows[0].id);
+    if (!r.ok || !r.id) throw new Error("expected ok");
+    const t = (await messages("dedupe_key like $1", [`daypass:${r.id}:%`])).map((m) => `${m.template}:${m.to_address}`);
+    expect(t).toEqual(expect.arrayContaining(["parent.day_pass_received:emily@example.com", "admin.day_pass_inquiry:owner@example.com"]));
+  });
+
+  it("one network can't flood the form with different emails", async () => {
+    const opts = { clientKey: "test-client-key" };
+    for (let i = 0; i < 5; i++) expect((await dayPass.submitDayPassInquiry({ ...base, contactEmail: `flood${i}@example.com` }, null, opts)).ok).toBe(true);
+    expect(await dayPass.submitDayPassInquiry({ ...base, contactEmail: "flood5@example.com" }, null, opts)).toEqual({ ok: false, error: expect.stringMatching(/already have your inquiry/) });
+    expect((await dayPass.submitDayPassInquiry({ ...base, contactEmail: "flood5@example.com" }, null, { clientKey: "someone-else" })).ok).toBe(true);
   });
 
   it("bots (honeypot) are silently dropped; the same email is limited per day", async () => {

@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
 import { PAYMENT_STATUS } from "@/lib/admin/labels";
@@ -7,6 +8,7 @@ import { formatCents, one } from "@/lib/utils";
 import { refundAction } from "../bookings/actions";
 
 export default async function AdminPayments({ searchParams }: PageProps<"/admin/payments">) {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const sp = await searchParams;
   const status = typeof sp.status === "string" ? sp.status : "all";
   const supabase = await createClient();

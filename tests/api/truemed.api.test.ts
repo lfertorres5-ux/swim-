@@ -40,6 +40,7 @@ beforeAll(async () => {
   configureServerEnv();
   process.env.PAYMENTS_DEV_MODE = "true";
   process.env.TRUEMED_API_KEY = "tm_test_key";
+  process.env.TRUEMED_WEBHOOK_KEY = "tm_test_webhook_key";
   process.env.TRUEMED_API_BASE = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   process.env.ADMIN_ALERT_EMAIL = "owner@example.com";
   checkout = await import("@/lib/booking/checkout");
@@ -50,6 +51,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await db.query("update public.platform_settings set hsa_fsa_enabled = false");
   delete process.env.TRUEMED_API_KEY;
+  delete process.env.TRUEMED_WEBHOOK_KEY;
   delete process.env.TRUEMED_API_BASE;
   server.close();
   await db.end();
@@ -94,6 +96,11 @@ describe.skipIf(!enabled)("HSA/FSA via Truemed", () => {
   it("'authorized' doesn't fulfill; 'captured' does, once", async () => {
     expect((await webhook.handleTruemedEvent({ sessionId: "ps_1", status: "authorized", type: "payment_session_complete" })).handled).toBe(false);
     expect((await db.query("select status from public.payments where id = $1", [paymentId])).rows[0].status).toBe("pending");
+
+    // A capture for a different amount never books (and doesn't block the real one).
+    expect((await webhook.handleTruemedEvent({ sessionId: "ps_1", status: "captured", type: "payment_session_complete", amountCents: 1 })).handled).toBe(false);
+    expect((await db.query("select status from public.payments where id = $1", [paymentId])).rows[0].status).toBe("pending");
+    expect((await db.query("select count(*)::int as n from public.audit_log where action = 'system.payment_amount_mismatch' and entity_id = $1", [paymentId])).rows[0].n).toBe(1);
 
     expect((await webhook.handleTruemedEvent({ sessionId: "ps_1", status: "captured", type: "payment_session_complete" })).handled).toBe(true);
     expect((await webhook.handleTruemedEvent({ sessionId: "ps_1", status: "captured", type: "payment_session_complete" })).duplicate).toBe(true);

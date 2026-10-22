@@ -287,8 +287,13 @@ export async function notifyDayPassInquiry(inquiryId: string) {
   const { data: q } = await admin.from("day_pass_inquiries").select("*").eq("id", inquiryId).single();
   if (!q) return;
   const club = await clubName();
-  const family: Recipient = { userId: q.parent_id, email: q.contact_email, phone: null, emailOptIn: true, smsOptIn: false };
-  await enqueue(family, "parent.day_pass_received", t.dayPassReceived({ name: q.contact_name, clubName: club, url: `${siteUrl()}/day-pass` }), { dedupeKey: `daypass:${inquiryId}:received` });
+  // Only confirm to a signed-in parent's own account email — otherwise anyone
+  // could make us email an address they typed in. The owner replies by hand.
+  const { data: account } = q.parent_id ? await admin.from("users").select("email").eq("id", q.parent_id).maybeSingle() : { data: null };
+  if (account?.email && account.email.toLowerCase() === q.contact_email.toLowerCase()) {
+    const family: Recipient = { userId: q.parent_id, email: q.contact_email, phone: null, emailOptIn: true, smsOptIn: false };
+    await enqueue(family, "parent.day_pass_received", t.dayPassReceived({ name: q.contact_name, clubName: club, url: `${siteUrl()}/day-pass` }), { dedupeKey: `daypass:${inquiryId}:received` });
+  }
   const owner = adminAlertRecipient();
   if (owner) {
     await enqueue(

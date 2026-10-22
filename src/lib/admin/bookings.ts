@@ -70,25 +70,38 @@ export async function adminCancelBooking(
   const { data: booking } = await admin.from("bookings").select("id, status, package_id, payment_id, series_id").eq("id", bookingId).single();
   if (!booking || !LIVE.includes(booking.status)) throw new BookingError("not_cancellable", "Only upcoming lessons can be cancelled.");
 
-  let refund = { refundedCents: 0, refundId: null as string | null };
-  if (opts.refundCents > 0) {
-    const paymentId = await resolvePaymentId(booking);
-    if (!paymentId) throw new BookingError("refund_unavailable", "There's no card payment linked to this lesson. Cancel without a refund, or refund from Payments.");
-    try {
-      refund = await refundPayment(paymentId, opts.refundCents, `admin-cancel-${bookingId}`, { booking_id: bookingId });
-    } catch (err) {
-      if (err instanceof RefundError) throw new BookingError("refund_unavailable", err.message);
-      throw err;
-    }
-  }
-  const restore = opts.restoreCredit && Boolean(booking.package_id);
-  if (restore) await admin.rpc("restore_package_credit", { p_package_id: booking.package_id });
+  // Resolve the payment before touching anything, so a missing payment fails cleanly.
+  const paymentId = opts.refundCents > 0 ? await resolvePaymentId(booking) : null;
+  if (opts.refundCents > 0 && !paymentId) throw new BookingError("refund_unavailable", "There's no card payment linked to this lesson. Cancel without a refund, or refund from Payments.");
 
-  const { error } = await admin
+  // Claim the cancellation atomically first: whoever moves the lesson out of a
+  // live status (owner or family) is the only one who refunds or restores.
+  const { data: claimed, error } = await admin
     .from("bookings")
     .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancelled_by: actorId, cancellation_reason: opts.reason?.slice(0, 500) ?? null, needs_attention: false, attention_reason: null })
-    .eq("id", bookingId);
+    .eq("id", bookingId)
+    .in("status", LIVE)
+    .select("id");
   if (error) throw new Error(error.message);
+  if (!claimed?.length) throw new BookingError("not_cancellable", "This lesson was already cancelled.");
+
+  let refund = { refundedCents: 0, refundId: null as string | null };
+  const restore = opts.restoreCredit && Boolean(booking.package_id);
+  try {
+    if (paymentId) {
+      try {
+        // Same key as a family cancellation, so a lesson is refunded once however it's cancelled.
+        refund = await refundPayment(paymentId, opts.refundCents, `cancel-${bookingId}`, { booking_id: bookingId });
+      } catch (err) {
+        if (err instanceof RefundError) throw new BookingError("refund_unavailable", err.message);
+        throw err;
+      }
+    }
+    if (restore) await admin.rpc("restore_package_credit", { p_package_id: booking.package_id });
+  } catch (err) {
+    await admin.from("bookings").update({ status: booking.status, cancelled_at: null, cancelled_by: null, cancellation_reason: null }).eq("id", bookingId).eq("status", "cancelled");
+    throw err;
+  }
   await admin.from("booking_offers").update({ status: "superseded" }).eq("booking_id", bookingId).eq("status", "pending");
 
   await audit(actorId, "admin.cancel_booking", "booking", bookingId, bookingId, { refund_cents: refund.refundedCents, refund_id: refund.refundId, credit_restored: restore, reason: opts.reason });

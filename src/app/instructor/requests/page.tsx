@@ -4,6 +4,7 @@ import { LEVEL_LABELS } from "@/lib/instructors";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime, formatTime } from "@/lib/time";
 import { respondToRequest } from "./actions";
+import { readFlash } from "@/lib/flash";
 
 export const metadata: Metadata = { title: "Booking requests" };
 
@@ -11,7 +12,9 @@ type Summary = { zone?: string; neighborhood?: string; duration_minutes?: number
 
 export default async function RequestsPage({ searchParams }: PageProps<"/instructor/requests">) {
   const ctx = await getInstructorContext();
-  const { error, done } = await searchParams;
+  const sp = await searchParams;
+  const done = typeof sp.done === "string" && ["accepted", "declined", "expired"].includes(sp.done) ? sp.done : null;
+  const error = readFlash(sp, "error");
   if (!ctx.isActive) return <p className="card text-stone-600">Booking requests will appear here once your account is activated.</p>;
 
   const supabase = await createClient();

@@ -1,3 +1,4 @@
+import { requireRole } from "@/lib/auth";
 import { ActionForm, Field } from "@/components/action-form";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, laDateString } from "@/lib/time";
@@ -54,6 +55,7 @@ function CodeForm({ c }: { c?: Code }) {
 }
 
 export default async function DiscountCodes() {
+  await requireRole("admin"); // every admin page checks on its own, never only via the layout
   const supabase = await createClient();
   const { data: codes } = await supabase.from("discount_codes").select("*").order("created_at", { ascending: false });
   return (

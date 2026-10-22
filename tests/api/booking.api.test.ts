@@ -198,6 +198,47 @@ describe.skipIf(!enabled)("booking + payments through the real API", () => {
     ).rejects.toMatchObject({ code: "invalid_promo" });
   });
 
+  it("promo uses are claimed with the hold, handed back if it lapses, and capped", async () => {
+    await db.query("delete from public.discount_codes where code = 'ONEUSE'");
+    await db.query("insert into public.discount_codes (code, percent_off, max_redemptions) values ('ONEUSE', 10, 1)");
+    const uses = async () => (await db.query("select redemptions from public.discount_codes where code = 'ONEUSE'")).rows[0].redemptions;
+    const { start } = await freeSlot({ durationMinutes: 60, swimmers: [{ ageMonths: 98, level: "intermediate" }], from: 6 });
+    const input = { address: addr.daniel, durationMinutes: 60, childIds: [kids.noah], instructorId: null, plan: { kind: "single" as const }, start, promoCode: "oneuse" };
+
+    const first = await checkout.createBookingCheckout(DANIEL, input);
+    if (first.kind !== "redirect") throw new Error("expected redirect");
+    expect(await uses()).toBe(1);
+    expect((await db.query("select discount_code_id from public.payments where id = $1", [first.paymentId])).rows[0].discount_code_id).not.toBeNull();
+
+    // The one use is taken while the first checkout is open (even for another time).
+    const other = await freeSlot({ durationMinutes: 60, swimmers: [{ ageMonths: 98, level: "intermediate" }], from: 8 });
+    await expect(checkout.createBookingCheckout(DANIEL, { ...input, start: other.start })).rejects.toMatchObject({ code: expect.stringMatching(/^(invalid_promo|promo_exhausted)$/) });
+
+    await checkout.releaseCheckout(first.paymentId);
+    expect(await uses()).toBe(0);
+    const again = await checkout.createBookingCheckout(DANIEL, input);
+    if (again.kind !== "redirect") throw new Error("expected redirect");
+    expect(await uses()).toBe(1);
+    await checkout.releaseCheckout(again.paymentId);
+
+    // Two checkouts at the same moment: the database lets exactly one claim the last use.
+    const a = await freeSlot({ durationMinutes: 60, swimmers: [{ ageMonths: 98, level: "intermediate" }], from: 9 });
+    const b = await freeSlot({ durationMinutes: 60, swimmers: [{ ageMonths: 98, level: "intermediate" }], from: 10 });
+    const race = await Promise.allSettled([a.start, b.start].map((s) => checkout.createBookingCheckout(DANIEL, { ...input, start: s })));
+    expect(race.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(await uses()).toBe(1);
+    for (const r of race) if (r.status === "fulfilled" && r.value.kind === "redirect") await checkout.releaseCheckout(r.value.paymentId);
+  });
+
+  it("promo lookups are exact: wildcards and odd characters never match", async () => {
+    const { start } = await freeSlot({ durationMinutes: 60, swimmers: [{ ageMonths: 98, level: "intermediate" }], from: 5 });
+    for (const promoCode of ["%", "WELCOME%", "_ELCOME10", "WEL COME10"]) {
+      await expect(
+        checkout.createBookingCheckout(DANIEL, { address: addr.daniel, durationMinutes: 60, childIds: [kids.noah], instructorId: null, plan: { kind: "single" }, start, promoCode }),
+      ).rejects.toMatchObject({ code: "invalid_promo" });
+    }
+  });
+
   it("cancelling 24h+ ahead refunds in full and frees the instructor", async () => {
     const [b] = await bookingsFor(single.paymentId);
     const result = await manage.cancelBooking(PRIYA, b.id, "Schedule change");
