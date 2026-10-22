@@ -100,7 +100,6 @@ export function AreaSearch({ zones }: { zones: Zone[] }) {
         {zones.map((z) => (
           <div key={z.code}>
             <p className="flex items-center gap-2 text-sm font-semibold text-stone-800">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: z.color ?? "#2e8689" }} />
               {z.name}
               <span className="font-normal text-stone-500">· {z.travelFeeCents ? `${money(z.travelFeeCents)} travel` : "no travel fee"}</span>
             </p>

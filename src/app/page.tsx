@@ -125,7 +125,7 @@ export default async function Home() {
         <div className="relative overflow-hidden rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-stone-200/70 sm:p-10">
           <span aria-hidden className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-brand-50" />
           <div className="relative">
-            <h2 className="max-w-2xl text-3xl font-semibold sm:text-4xl">Not a franchise. San Diego swimmers.</h2>
+            <h2 className="max-w-2xl text-3xl font-semibold sm:text-4xl">San Diego&apos;s best swimmers, in your backyard.</h2>
             <p className="mt-3 max-w-2xl text-stone-600">
               We&apos;re local swimmers who care about one thing: giving every family access to swimming taught by the very best instructors.
             </p>
