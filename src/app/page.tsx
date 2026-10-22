@@ -219,12 +219,7 @@ export default async function Home() {
                     <span className="rounded-full bg-coral-500 px-2.5 py-0.5 text-sm font-semibold text-white">{Number(o.discount_pct)}% off</span>
                   </li>
                 ))}
-                <li className="flex items-center justify-between">
-                  <span>Every week, same time</span>
-                  <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-sm font-semibold">{Number(pricing?.recurring_discount_pct ?? 0)}% off</span>
-                </li>
               </ul>
-              <p className="mt-4 text-sm text-brand-200">Packages also get you your instructor&apos;s phone number once they confirm.</p>
             </div>
             <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-200/70">
               <h3 className="text-xl font-semibold">Good to know</h3>
@@ -235,8 +230,7 @@ export default async function Home() {
                     {z.min_booking_minutes ? `, ${z.min_booking_minutes} min minimum` : ""}
                   </li>
                 ))}
-                <li>Book a time next to a neighbor&apos;s lesson and save {money(pricing?.neighborhood_discount_cents ?? 0)}</li>
-                <li>Free to cancel or move up to {cancelHours} hours before</li>
+                <li>Book a time next to a neighbor&apos;s lesson and save {money(pricing?.neighborhood_discount_cents ?? 0)} per lesson</li>
                 {hsaFsa && <li className="font-medium text-brand-800">Pay with HSA/FSA through Truemed, if your lessons qualify</li>}
               </ul>
             </div>
