@@ -33,7 +33,7 @@ export default async function BookPage({ searchParams }: PageProps<"/book">) {
         <BookingWizard
           prices={(prices ?? []).map((p) => ({ durationMinutes: p.duration_minutes, priceCents: p.price_cents }))}
           offerings={(offerings ?? []).map((o) => ({ id: o.id, name: o.name, lessonCount: o.lesson_count, discountPct: Number(o.discount_pct) }))}
-          recurringTermWeeks={settings?.recurring_term_weeks ?? [4, 8]}
+          recurringTermWeeks={[]} // weekly plans aren't offered; families book single lessons or packages
           recurringDiscountPct={Number(pricing?.recurring_discount_pct ?? 0)}
           includedChildren={pricing?.included_children ?? 2}
           extraChildCents={pricing?.extra_child_cents ?? 0}

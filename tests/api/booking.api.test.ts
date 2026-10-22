@@ -170,21 +170,13 @@ describe.skipIf(!enabled)("booking + payments through the real API", () => {
     ).rejects.toMatchObject({ code: "invalid_credit" });
   });
 
-  it("weekly series: books every week with one instructor at 10% off", async () => {
-    const { start, slot } = await freeSlot({ durationMinutes: 60, swimmers: [{ ageMonths: 98, level: "intermediate" }], weeks: 4, from: 4 });
-    const r = await checkout.createBookingCheckout(DANIEL, { address: addr.daniel, durationMinutes: 60, childIds: [kids.noah], instructorId: null, plan: { kind: "recurring", weeks: 4 }, start });
-    if (r.kind !== "redirect") throw new Error("expected redirect");
-    const rows = await bookingsFor(r.paymentId);
-    expect(rows).toHaveLength(4);
-    expect(new Set(rows.map((x) => x.instructor_id)).size).toBe(1);
-    expect(rows.every((x) => x.total_cents === 8100)).toBe(true);
-    const pay = await db.query("select amount_cents, series_id from public.payments where id = $1", [r.paymentId]);
-    expect(pay.rows[0].amount_cents).toBe(4 * 8100);
-    const series = await db.query("select weekday, status from public.booking_series where id = $1", [pay.rows[0].series_id]);
-    expect(series.rows[0].status).toBe("pending_payment");
-    expect(slot.candidates.length).toBeGreaterThan(0);
-    await checkout.releaseCheckout(r.paymentId);
+  it("weekly plans aren't offered", async () => {
+    const { start } = await freeSlot({ durationMinutes: 60, swimmers: [{ ageMonths: 98, level: "intermediate" }], from: 4 });
+    await expect(
+      checkout.createBookingCheckout(DANIEL, { address: addr.daniel, durationMinutes: 60, childIds: [kids.noah], instructorId: null, plan: { kind: "recurring", weeks: 4 }, start }),
+    ).rejects.toMatchObject({ code: "invalid_plan" });
   });
+
 
   it("promo codes are validated and applied server-side", async () => {
     const { start, slot } = await freeSlot({ durationMinutes: 60, swimmers: [{ ageMonths: 98, level: "intermediate" }], from: 5 });

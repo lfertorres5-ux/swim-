@@ -34,7 +34,7 @@ export default async function Home() {
     ["We don't have a pool. Can we still take lessons?", "In certain cases, yes: we can teach at one of our partner country club pools. Get in touch and we'll let you know what's possible for your family and schedule."],
     ["How young can my child start?", "Some of our instructors teach babies from 6 months, with a parent in the water."],
     ["Can siblings share a lesson?", `Yes — up to ${included} kids are included, and each extra swimmer is ${extra}.`],
-    ["What if we need to cancel?", `Cancel or reschedule free from your account up to ${cancelHours} hours ahead. If the weather turns, your instructor will reach out.`],
+    ["What if we need to cancel?", `You can cancel or reschedule from your account up to ${cancelHours} hours before your lesson at no charge. Within ${cancelHours} hours, the lesson isn't refunded — but please still let us know as soon as you can so your instructor isn't left waiting. If the weather turns, your instructor will reach out.`],
     ["How do I pay?", hsaFsa ? "Online when you book, by card or with your HSA/FSA card through Truemed. You'll get a receipt for every lesson." : "Online when you book. You'll get a receipt for every lesson."],
     ...(hsaFsa
       ? ([["Can I use my HSA or FSA?", "Possibly. Swim lessons may qualify for HSA/FSA funds when they're recommended for a health reason. At checkout, choose “HSA / FSA card”: Truemed asks a few quick health questions, and if a licensed provider approves, you pay with your HSA/FSA card. If not, you can pay by card instead."]] as [string, string][])

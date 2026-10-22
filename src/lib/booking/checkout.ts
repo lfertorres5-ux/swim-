@@ -35,6 +35,9 @@ export const checkoutInputSchema = z.object({
 });
 export type CheckoutInput = z.infer<typeof checkoutInputSchema>;
 
+/** Weekly plans aren't offered: families book single lessons or packages. */
+const WEEKLY_PLANS_OFFERED = false as boolean;
+
 export class BookingError extends Error {
   constructor(
     readonly code: string,
@@ -79,6 +82,7 @@ export async function createBookingCheckout(parentId: string, raw: CheckoutInput
   const lessonDate = laDateString(new Date(start));
   const startMinutes = laMinutesOfDay(start);
   const swimmers = children.map((c) => ({ ageMonths: c.birth_date ? ageInMonths(c.birth_date, lessonDate) : null, level: c.swim_level as SwimLevel }));
+  if (!WEEKLY_PLANS_OFFERED && input.plan.kind === "recurring") throw new BookingError("invalid_plan", "Weekly plans aren't available. Book a single lesson or a package.");
   const weeks = input.plan.kind === "recurring" ? input.plan.weeks : 1;
 
   // Plan (validated before the slot so credit/package errors are specific).
