@@ -295,3 +295,13 @@ describe("signup role assignment", () => {
     });
   });
 });
+
+describe("package auto-renew", () => {
+  it("parents see their renewal settings but never the saved card reference", async () => {
+    await asUser(f.parent1, async (db) => {
+      await db.query("select id, auto_renew, renewal_amount_cents, renewal_charge_at from public.packages");
+      await expectSqlError(db, "select renewal_payment_method_id from public.packages", [], PERMISSION_DENIED);
+      await expectSqlError(db, "update public.packages set auto_renew = true", [], PERMISSION_DENIED);
+    });
+  });
+});

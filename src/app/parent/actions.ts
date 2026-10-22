@@ -8,6 +8,7 @@ import { requireRole } from "@/lib/auth";
 import { BookingError } from "@/lib/booking/checkout";
 import { cancelBooking, rescheduleBooking } from "@/lib/booking/manage";
 import { siteUrl } from "@/lib/env";
+import { setAutoRenew } from "@/lib/packages/renewal";
 import { paymentsGateway } from "@/lib/payments/gateway";
 import { ageInMonths } from "@/lib/scheduling/engine";
 import { getAvailability } from "@/lib/scheduling/service";
@@ -96,4 +97,13 @@ export async function billingPortalAction() {
   if (!data?.stripe_customer_id) redirect("/parent/receipts?error=no_payments");
   const url = await paymentsGateway().billingPortalUrl(data.stripe_customer_id, `${siteUrl()}/parent/receipts`);
   redirect(url);
+}
+
+export async function setAutoRenewAction(formData: FormData) {
+  const user = await requireRole("parent");
+  const packageId = z.guid().parse(formData.get("packageId"));
+  const on = formData.get("on") === "true";
+  const r = await setAutoRenew(user.id, packageId, on);
+  revalidatePath("/parent");
+  redirect(r.ok ? `/parent?${flashQuery("notice", on ? "Auto-renew is on." : "Auto-renew is off. You won't be charged.")}#packages` : `/parent?${flashQuery("error", r.error)}#packages`);
 }

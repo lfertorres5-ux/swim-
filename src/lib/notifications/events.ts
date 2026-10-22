@@ -344,3 +344,44 @@ export async function notifyManualRefund(bookingId: string, amountCents: number)
   const { lesson } = await lessonContext(bookingId);
   await enqueue(owner, "admin.manual_refund", t.adminManualRefund({ lesson, amountCents, url: `${siteUrl()}/admin/bookings/${bookingId}` }), { bookingId, dedupeKey: `manual-refund:${bookingId}` });
 }
+
+// ---------------------------------------------------------------------------
+// Package auto-renew. These are required notices (California's auto-renewal
+// law), so they go out by email even if marketing email is turned off.
+// ---------------------------------------------------------------------------
+async function renewalContext(packageId: string) {
+  const admin = createAdminClient();
+  const { data: pkg } = await admin.from("packages").select("id, parent_id, lesson_count, duration_minutes, total_cents, renewal_amount_cents").eq("id", packageId).single();
+  if (!pkg) throw new Error(`package ${packageId} not found`);
+  const parent = await person(pkg.parent_id);
+  const renewal: t.RenewalInfo = { lessonCount: pkg.lesson_count, durationMinutes: pkg.duration_minutes, amountCents: pkg.renewal_amount_cents ?? pkg.total_cents };
+  return { pkg, parent: parent ? { ...parent, emailOptIn: true } : null, renewal };
+}
+
+export async function notifyRenewalReminder(packageId: string, chargeOn: string) {
+  const { parent, renewal } = await renewalContext(packageId);
+  if (!parent) return;
+  await enqueue(parent, "parent.package_renewal_reminder", t.packageRenewalReminder({ renewal, chargeOn, url: `${siteUrl()}/parent#packages` }), {
+    dedupeKey: `renewal:${packageId}:reminder`,
+  });
+}
+
+export async function notifyRenewed(newPackageId: string, receiptUrl: string | null) {
+  const { parent, renewal } = await renewalContext(newPackageId);
+  if (!parent) return;
+  await enqueue(parent, "parent.package_renewed", t.packageRenewed({ renewal, receiptUrl, url: `${siteUrl()}/book` }), { dedupeKey: `renewal:${newPackageId}:renewed` });
+}
+
+export async function notifyRenewalFailed(packageId: string, reason: string) {
+  const { parent, renewal } = await renewalContext(packageId);
+  if (parent) {
+    await enqueue(parent, "parent.package_renewal_failed", t.packageRenewalFailed({ renewal, reason, url: `${siteUrl()}/book` }), { dedupeKey: `renewal:${packageId}:failed` });
+  }
+  const owner = adminAlertRecipient();
+  if (owner) {
+    const familyName = parent?.firstName ?? "A family";
+    await enqueue(owner, "admin.package_renewal_failed", t.adminRenewalFailed({ familyName, renewal, reason, url: `${siteUrl()}/admin/payments` }), {
+      dedupeKey: `renewal:${packageId}:failed:admin`,
+    });
+  }
+}

@@ -12,6 +12,8 @@ export type CheckoutParams = {
   successUrl: string;
   cancelUrl: string;
   expiresAt: Date;
+  /** Keep the card on file for an opted-in package auto-renewal. */
+  saveCard?: boolean;
 };
 
 export type CompletedCheckout = {
@@ -22,7 +24,13 @@ export type CompletedCheckout = {
   paymentIntentId: string | null;
   receiptUrl: string | null;
   chargeId: string | null;
+  /** The card used, when it was saved for later (auto-renew). */
+  paymentMethodId: string | null;
 };
+
+export type SavedCardCharge =
+  | { ok: true; paymentIntentId: string; chargeId: string | null; receiptUrl: string | null }
+  | { ok: false; reason: string };
 
 /**
  * Everything the app needs from a payment processor. Prices are always
@@ -37,6 +45,8 @@ export interface PaymentsGateway {
   completedCheckout(sessionId: string): Promise<CompletedCheckout>;
   refund(params: { paymentIntentId: string; amountCents: number; idempotencyKey: string; metadata: Record<string, string> }): Promise<{ refundId: string }>;
   billingPortalUrl(customerId: string, returnUrl: string): Promise<string>;
+  /** Charge a saved card without the customer present (package auto-renew). Never throws for a declined card. */
+  chargeSavedCard(params: { customerId: string; paymentMethodId: string; amountCents: number; currency: string; description: string; idempotencyKey: string; metadata: Record<string, string> }): Promise<SavedCardCharge>;
 }
 
 let stripeClient: Stripe | null = null;
@@ -71,7 +81,7 @@ const stripeGateway: PaymentsGateway = {
             price_data: { currency: p.currency, unit_amount: p.amountCents, product_data: { name: p.title, description: p.description.slice(0, 500) } },
           },
         ],
-        payment_intent_data: { metadata: { payment_id: p.paymentId }, description: p.title },
+        payment_intent_data: { metadata: { payment_id: p.paymentId }, description: p.title, ...(p.saveCard ? { setup_future_usage: "off_session" as const } : {}) },
         metadata: { payment_id: p.paymentId },
         success_url: p.successUrl,
         cancel_url: p.cancelUrl,
@@ -95,7 +105,35 @@ const stripeGateway: PaymentsGateway = {
       paymentIntentId: intent?.id ?? (typeof session.payment_intent === "string" ? session.payment_intent : null),
       receiptUrl: charge?.receipt_url ?? null,
       chargeId: charge?.id ?? null,
+      paymentMethodId: intent?.setup_future_usage === "off_session" && typeof intent.payment_method === "string" ? intent.payment_method : null,
     };
+  },
+
+  async chargeSavedCard(p) {
+    try {
+      const intent = await stripe().paymentIntents.create(
+        {
+          amount: p.amountCents,
+          currency: p.currency,
+          customer: p.customerId,
+          payment_method: p.paymentMethodId,
+          off_session: true,
+          confirm: true,
+          description: p.description,
+          metadata: p.metadata,
+          expand: ["latest_charge"],
+        },
+        { idempotencyKey: p.idempotencyKey },
+      );
+      if (intent.status !== "succeeded") return { ok: false, reason: `Payment ${intent.status.replaceAll("_", " ")}` };
+      const charge = typeof intent.latest_charge === "object" ? intent.latest_charge : null;
+      return { ok: true, paymentIntentId: intent.id, chargeId: charge?.id ?? null, receiptUrl: charge?.receipt_url ?? null };
+    } catch (err) {
+      // Declines and cards needing the customer present (3-D Secure) land here.
+      const e = err as { type?: string; message?: string; code?: string };
+      if (e.type === "StripeCardError" || e.code === "authentication_required") return { ok: false, reason: e.message ?? "Card declined" };
+      throw err;
+    }
   },
 
   async refund({ paymentIntentId, amountCents, idempotencyKey, metadata }) {
@@ -139,7 +177,13 @@ const devGateway: PaymentsGateway = {
       paymentIntentId: `dev_pi_${paymentId}`,
       receiptUrl: null,
       chargeId: null,
+      paymentMethodId: `dev_pm_${paymentId.slice(0, 8)}`,
     };
+  },
+  async chargeSavedCard({ paymentMethodId, idempotencyKey }) {
+    // Tests use a payment method named "dev_pm_declined" to simulate a decline.
+    if (paymentMethodId === "dev_pm_declined") return { ok: false, reason: "Your card was declined." };
+    return { ok: true, paymentIntentId: `dev_pi_${idempotencyKey}`, chargeId: null, receiptUrl: null };
   },
   async refund({ idempotencyKey }) {
     return { refundId: `dev_re_${idempotencyKey}` };

@@ -6,7 +6,8 @@ import { loadInstructorCards } from "@/lib/instructor-cards";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime } from "@/lib/time";
 import { one } from "@/lib/utils";
-import { toggleFavoriteAction } from "./actions";
+import { readFlash } from "@/lib/flash";
+import { setAutoRenewAction, toggleFavoriteAction } from "./actions";
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   pending_payment: { label: "Awaiting payment", cls: "bg-amber-50 text-amber-800" },
@@ -14,8 +15,13 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   confirmed: { label: "Confirmed", cls: "bg-emerald-50 text-emerald-800" },
 };
 
-export default async function ParentHome() {
+const money = (c: number) => `$${(c / 100).toFixed(c % 100 ? 2 : 0)}`;
+
+export default async function ParentHome({ searchParams }: PageProps<"/parent">) {
   const user = await requireRole("parent");
+  const sp = await searchParams;
+  const notice = readFlash(sp, "notice");
+  const flashError = readFlash(sp, "error");
   const supabase = await createClient();
 
   const [{ data: upcoming }, { data: packages }, { data: notes }, { data: parent }] = await Promise.all([
@@ -26,10 +32,17 @@ export default async function ParentHome() {
       .in("status", ["pending_instructor", "confirmed"])
       .order("starts_at")
       .limit(20),
-    supabase.from("packages").select("id, lesson_count, lessons_remaining, duration_minutes, expires_at").eq("status", "active").gt("lessons_remaining", 0),
+    supabase
+      .from("packages")
+      .select("id, lesson_count, lessons_remaining, duration_minutes, expires_at, status, total_cents, auto_renew, renewal_amount_cents, renewal_charge_at, renewal_started_at, renewed_to_package_id, renewal_failed_at")
+      .in("status", ["active", "exhausted"])
+      .is("renewed_to_package_id", null)
+      .order("created_at"),
     supabase.from("lesson_notes").select("id, summary, created_at, booking:bookings(starts_at)").order("created_at", { ascending: false }).limit(3),
     supabase.from("parents").select("favorite_instructor_id").eq("id", user.id).single(),
   ]);
+  // Packages with lessons left, plus used-up ones still set to renew.
+  const shownPackages = (packages ?? []).filter((p) => p.lessons_remaining > 0 || p.auto_renew);
   const [favorite] = parent?.favorite_instructor_id ? await loadInstructorCards([parent.favorite_instructor_id]) : [];
   // Audited RPC: instructors who accepted a lesson from one of your packages.
   const { data: contacts } = await supabase.rpc("my_instructor_contacts");
@@ -92,16 +105,52 @@ export default async function ParentHome() {
             </div>
           </div>
         )}
-        {!!packages?.length && (
-          <div className="card">
-            <h2 className="font-semibold">Package credits</h2>
-            <ul className="mt-2 space-y-1 text-sm">
-              {packages.map((p) => (
-                <li key={p.id}>
-                  {p.lessons_remaining} of {p.lesson_count} × {p.duration_minutes}-min lessons left
-                  {p.expires_at && <span className="text-stone-500"> · use by {formatDate(p.expires_at)}</span>}
-                </li>
-              ))}
+        {(notice || flashError) && (
+          <p className={`card text-sm ${flashError ? "text-coral-700" : "text-emerald-800"}`} role="status">
+            {flashError ?? notice}
+          </p>
+        )}
+        {!!shownPackages.length && (
+          <div className="card" id="packages">
+            <h2 className="font-semibold">Your packages</h2>
+            <ul className="mt-2 space-y-4 text-sm">
+              {shownPackages.map((p) => {
+                const price = money(p.renewal_amount_cents ?? p.total_cents);
+                const locked = Boolean(p.renewal_started_at);
+                return (
+                  <li key={p.id} className="space-y-1.5">
+                    <p>
+                      {p.lessons_remaining} of {p.lesson_count} × {p.duration_minutes}-min lessons left
+                      {p.expires_at && p.lessons_remaining > 0 && <span className="text-stone-500"> · use by {formatDate(p.expires_at)}</span>}
+                    </p>
+                    {p.auto_renew ? (
+                      <div className="rounded-xl bg-brand-50 p-3 text-brand-900">
+                        <p>
+                          <span className="font-semibold">Auto-renew is on.</span>{" "}
+                          {p.renewal_charge_at
+                            ? `Renews for ${price} on or after ${formatDate(p.renewal_charge_at)}.`
+                            : `After you book the last lesson, we'll renew this package for ${price}. We email you at least 3 days before.`}
+                        </p>
+                        {!locked && (
+                          <form action={setAutoRenewAction} className="mt-2">
+                            <input type="hidden" name="packageId" value={p.id} />
+                            <input type="hidden" name="on" value="false" />
+                            <button className="font-semibold text-brand-800 underline">Turn off auto-renew</button>
+                          </form>
+                        )}
+                      </div>
+                    ) : (
+                      <form action={setAutoRenewAction} className="text-stone-500">
+                        <input type="hidden" name="packageId" value={p.id} />
+                        <input type="hidden" name="on" value="true" />
+                        {p.renewal_failed_at ? "Auto-renew stopped: the card didn't go through. " : "Auto-renew is off. "}
+                        <button className="text-brand-700 underline">Turn on</button>
+                        <span className="block text-xs">Renews this package for {price} on the card you used, after its last lesson is booked. We email 3 days before; turn off any time.</span>
+                      </form>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

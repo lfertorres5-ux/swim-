@@ -109,6 +109,8 @@ export function BookingWizard(props: WizardProps) {
   // 6. Review
   const [promo, setPromo] = useState("");
   const [payWith, setPayWith] = useState<"card" | "hsa_fsa">("card");
+  // Package auto-renew is opt-in: never pre-ticked.
+  const [autoRenew, setAutoRenew] = useState(false);
   const [quote, setQuote] = useState<(Quote & { promoMessage?: string }) | null>(null);
 
   const weeks = plan.kind === "recurring" ? plan.weeks : null;
@@ -246,6 +248,7 @@ export function BookingWizard(props: WizardProps) {
         start: slot.start,
         promoCode: promo || undefined,
         paymentMethod: payWith,
+        autoRenew: plan.kind === "package" && payWith === "card" ? autoRenew : false,
       });
       if (!r.ok) {
         setError(r.error);
@@ -646,6 +649,18 @@ export function BookingWizard(props: WizardProps) {
                 </p>
               )}
             </div>
+          )}
+          {plan.kind === "package" && quote && quote.totalCents > 0 && payWith === "card" && (
+            <label className="card flex cursor-pointer items-start gap-3">
+              <input type="checkbox" className="mt-1 h-4 w-4 shrink-0" checked={autoRenew} onChange={(e) => setAutoRenew(e.target.checked)} />
+              <span className="text-sm text-stone-700">
+                <span className="block font-semibold text-stone-900">Auto-renew this package</span>
+                Keep lessons going without a gap. Once you&apos;ve booked the last lesson in this package, we&apos;ll renew the same{" "}
+                {props.offerings.find((o) => plan.kind === "package" && o.id === plan.offeringId)?.lessonCount ?? ""}-lesson package for{" "}
+                <strong>{money(quote.subtotalCents)}</strong>, charged to this card after that lesson. We&apos;ll email you at least 3 days before every renewal, and you can turn
+                it off any time from your account. It repeats until you turn it off.
+              </span>
+            </label>
           )}
           <Actions
             onBack={back}

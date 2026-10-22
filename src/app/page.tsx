@@ -34,6 +34,7 @@ export default async function Home() {
     ["We don't have a pool. Can we still take lessons?", "In certain cases, yes: we can teach at one of our partner country club pools. Get in touch and we'll let you know what's possible for your family and schedule."],
     ["How young can my child start?", "Some of our instructors teach babies from 6 months, with a parent in the water."],
     ["Can siblings share a lesson?", `Yes — up to ${included} kids are included, and each extra swimmer is ${extra}.`],
+    ["Do packages renew automatically?", "Only if you choose to. When you buy a package you can tick “auto-renew”: once you've booked its last lesson, we renew the same package at the regular price, charged to the same card after that lesson. We email you at least 3 days before every renewal, and you can turn it off any time from your account."],
     ["What if we need to cancel?", `You can cancel or reschedule from your account up to ${cancelHours} hours before your lesson at no charge. Within ${cancelHours} hours, the lesson isn't refunded — but please still let us know as soon as you can so your instructor isn't left waiting. If the weather turns, your instructor will reach out.`],
     ["How do I pay?", hsaFsa ? "Online when you book, by card or with your HSA/FSA card through Truemed. You'll get a receipt for every lesson." : "Online when you book. You'll get a receipt for every lesson."],
     ...(hsaFsa

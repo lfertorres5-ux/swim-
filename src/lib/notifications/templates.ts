@@ -353,3 +353,61 @@ export function adminManualRefund(p: { lesson: LessonInfo; amountCents: number; 
     null,
   );
 }
+
+// ---------------------------------------------------------------------------
+// Package auto-renew
+// ---------------------------------------------------------------------------
+export type RenewalInfo = { lessonCount: number; durationMinutes: number; amountCents: number };
+const packageName = (r: RenewalInfo) => `${r.lessonCount}-lesson package (${r.durationMinutes}-min lessons)`;
+
+export function packageRenewalReminder(p: { renewal: RenewalInfo; chargeOn: string; url: string }): Rendered {
+  const date = formatDate(p.chargeOn, { weekday: "long", month: "long", day: "numeric" });
+  return build(
+    `Your swim package renews on ${formatDate(p.chargeOn, { month: "short", day: "numeric" })}`,
+    "Your package is about to renew",
+    [
+      `You've booked the last lesson in your ${packageName(p.renewal)}. As you asked, it will renew automatically after that lesson.`,
+      `On or after ${date} we'll charge ${money(p.renewal.amountCents)} to the card you used, and ${p.renewal.lessonCount} new lessons will be added to your account.`,
+      "Don't want to renew? Turn off auto-renew from your account any time before then — no charge, no questions.",
+    ],
+    { label: "Manage auto-renew", url: p.url },
+    `Your ${p.renewal.lessonCount}-lesson swim package renews for ${money(p.renewal.amountCents)} on or after ${date}. To stop it, turn off auto-renew: ${p.url}`,
+  );
+}
+
+export function packageRenewed(p: { renewal: RenewalInfo; receiptUrl: string | null; url: string }): Rendered {
+  return build(
+    `Your swim package renewed: ${money(p.renewal.amountCents)}`,
+    "Your package renewed",
+    [
+      `We charged ${money(p.renewal.amountCents)} for a new ${packageName(p.renewal)}. Your ${p.renewal.lessonCount} lessons are ready to book.`,
+      ...(p.receiptUrl ? [`Receipt: ${p.receiptUrl}`] : []),
+      "It will renew again after its last lesson is booked. You can turn that off from your account any time.",
+    ],
+    { label: "Book your next lesson", url: p.url },
+    null,
+  );
+}
+
+export function packageRenewalFailed(p: { renewal: RenewalInfo; reason: string; url: string }): Rendered {
+  return build(
+    "We couldn't renew your swim package",
+    "Your package didn't renew",
+    [
+      `We tried to charge ${money(p.renewal.amountCents)} for your next ${packageName(p.renewal)}, but the card didn't go through (${p.reason}).`,
+      "Nothing was charged and auto-renew is now off. You can buy a new package any time from the booking page.",
+    ],
+    { label: "Buy a new package", url: p.url },
+    null,
+  );
+}
+
+export function adminRenewalFailed(p: { familyName: string; renewal: RenewalInfo; reason: string; url: string }): Rendered {
+  return build(
+    `Package renewal failed: ${p.familyName}`,
+    "A package didn't renew",
+    [`${p.familyName}'s ${packageName(p.renewal)} renewal (${money(p.renewal.amountCents)}) failed: ${p.reason}.`, "The family was told and auto-renew is off."],
+    { label: "Open payments", url: p.url },
+    null,
+  );
+}

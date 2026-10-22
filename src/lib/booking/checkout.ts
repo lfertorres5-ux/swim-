@@ -32,6 +32,8 @@ export const checkoutInputSchema = z.object({
   promoCode: z.string().max(40).optional(),
   /** "hsa_fsa" pays through Truemed (only when enabled); everything else is a card via Stripe. */
   paymentMethod: z.enum(["card", "hsa_fsa"]).optional(),
+  /** Opt-in: renew the same package on the saved card once its last lesson is booked (card packages only). */
+  autoRenew: z.boolean().optional(),
 });
 export type CheckoutInput = z.infer<typeof checkoutInputSchema>;
 
@@ -248,7 +250,17 @@ export async function createBookingCheckout(parentId: string, raw: CheckoutInput
     if (holdError.code === "SB007") throw new BookingError("promo_exhausted", "That code is no longer available.");
     throw new Error(`create_booking_hold failed: ${holdError.message}`);
   }
-  const { payment_id: paymentId, booking_ids: bookingIds } = hold as { payment_id: string | null; booking_ids: string[] };
+  const { payment_id: paymentId, booking_ids: bookingIds, package_id: newPackageId } = hold as { payment_id: string | null; booking_ids: string[]; package_id: string | null };
+
+  // Auto-renew is opt-in, card-only, and recorded with the time the family agreed.
+  const autoRenew = Boolean(input.autoRenew && input.plan.kind === "package" && newPackageId && paymentId && input.paymentMethod !== "hsa_fsa");
+  if (autoRenew) {
+    // Renewals are at the regular package price: a one-time promo doesn't repeat.
+    await admin
+      .from("packages")
+      .update({ auto_renew: true, auto_renew_consented_at: new Date(now).toISOString(), renewal_amount_cents: quote.subtotalCents })
+      .eq("id", newPackageId!);
+  }
 
   if (input.saveAsHome) {
     await admin
@@ -275,7 +287,7 @@ export async function createBookingCheckout(parentId: string, raw: CheckoutInput
     entity_type: "payment",
     entity_id: paymentId,
     booking_id: bookingIds[0],
-    metadata: { kind: input.plan.kind, booking_ids: bookingIds, total_cents: quote.totalCents, instructor_id: chosen.instructorId },
+    metadata: { kind: input.plan.kind, booking_ids: bookingIds, total_cents: quote.totalCents, instructor_id: chosen.instructorId, auto_renew: autoRenew },
   });
 
   // Nothing to pay (package credit or 100% promo): confirm right away.
@@ -338,6 +350,7 @@ export async function createBookingCheckout(parentId: string, raw: CheckoutInput
       successUrl: `${siteUrl()}/parent/bookings/confirmed?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${siteUrl()}/book/cancelled?payment=${paymentId}`,
       expiresAt: new Date(now + holdMinutes * 60_000),
+      saveCard: autoRenew,
     });
     await admin.from("payments").update({ stripe_checkout_session_id: session.sessionId }).eq("id", paymentId);
     return { kind: "redirect", url: session.url, paymentId, bookingIds };
@@ -371,7 +384,10 @@ function describeOrder(quote: Quote, duration: number, swimmers: number, start: 
  * Stripe says the Checkout Session was paid. Idempotent: the first caller flips
  * the payment to succeeded; later deliveries are no-ops.
  */
-export async function fulfillPayment(checkout: { paymentId: string; sessionId: string; paymentIntentId: string | null; amountTotal: number | null; receiptUrl: string | null; chargeId: string | null }, now = Date.now()) {
+export async function fulfillPayment(
+  checkout: { paymentId: string; sessionId: string; paymentIntentId: string | null; amountTotal: number | null; receiptUrl: string | null; chargeId: string | null; paymentMethodId?: string | null },
+  now = Date.now(),
+) {
   const admin = createAdminClient();
   const { data: payment, error: updateError } = await admin
     .from("payments")
@@ -421,6 +437,10 @@ export async function fulfillPayment(checkout: { paymentId: string; sessionId: s
       .from("packages")
       .update({ status: "active", purchased_at: new Date(now).toISOString(), expires_at: new Date(now + validity * 86_400_000).toISOString() })
       .eq("id", payment.package_id);
+    // Keep the card reference only for a package the family opted to auto-renew.
+    if (checkout.paymentMethodId) {
+      await admin.from("packages").update({ renewal_payment_method_id: checkout.paymentMethodId }).eq("id", payment.package_id).eq("auto_renew", true);
+    }
   }
   if (payment.series_id) await admin.from("booking_series").update({ status: "active" }).eq("id", payment.series_id);
 

@@ -50,7 +50,7 @@ describe("instructor cannot read parent contact fields", () => {
     await asUser(f.instructorA, async (db) => {
       expect((await db.query("select * from public.booking_pricing")).rowCount).toBe(0);
       expect((await db.query("select * from public.payments")).rowCount).toBe(0);
-      expect((await db.query("select * from public.packages")).rowCount).toBe(0);
+      expect((await db.query("select id from public.packages")).rowCount).toBe(0);
     });
   });
 
