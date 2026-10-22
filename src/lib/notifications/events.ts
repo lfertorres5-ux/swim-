@@ -331,3 +331,11 @@ export async function notifyReassigned(bookingId: string, previousInstructorId: 
   if (next) await enqueue(next, "instructor.shift_filled", t.instructorShiftFilled({ lesson, url: `${siteUrl()}/instructor` }), { bookingId, dedupeKey: `${key}:next` });
   if (previous) await enqueue(previous, "instructor.booking_cancelled", t.instructorCancelled({ lesson, url: `${siteUrl()}/instructor` }), { bookingId, dedupeKey: `${key}:previous` });
 }
+
+/** HSA/FSA lesson cancelled with a refund due: Truemed refunds are issued by the owner. */
+export async function notifyManualRefund(bookingId: string, amountCents: number) {
+  const owner = adminAlertRecipient();
+  if (!owner) return;
+  const { lesson } = await lessonContext(bookingId);
+  await enqueue(owner, "admin.manual_refund", t.adminManualRefund({ lesson, amountCents, url: `${siteUrl()}/admin/bookings/${bookingId}` }), { bookingId, dedupeKey: `manual-refund:${bookingId}` });
+}

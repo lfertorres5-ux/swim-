@@ -26,7 +26,7 @@ export default async function AdminBooking({ params, searchParams }: PageProps<"
       .eq("id", id)
       .maybeSingle(),
     supabase.from("instructors").select("id, first_name").eq("is_active", true).order("first_name"),
-    supabase.from("payments").select("id, amount_cents, refunded_cents, status, description, created_at, stripe_payment_intent_id").or(`booking_id.eq.${id}`).order("created_at"),
+    supabase.from("payments").select("id, processor, amount_cents, refunded_cents, status, description, created_at, stripe_payment_intent_id").or(`booking_id.eq.${id}`).order("created_at"),
     supabase.from("audit_log").select("id, occurred_at, actor_role, action, metadata").eq("booking_id", id).order("occurred_at", { ascending: false }).limit(30),
     supabase.from("open_shifts").select("status, reason, created_at, claimed:instructors!open_shifts_claimed_by_fkey(first_name)").eq("booking_id", id).order("created_at", { ascending: false }),
     adminCancellationPreview(id),
@@ -41,7 +41,7 @@ export default async function AdminBooking({ params, searchParams }: PageProps<"
   const st = BOOKING_STATUS[b.status];
   const live = ["pending_payment", "pending_instructor", "confirmed"].includes(b.status);
   const linked = payments ?? [];
-  const linkedPayment = b.payment_id && !linked.some((p) => p.id === b.payment_id) ? (await supabase.from("payments").select("id, amount_cents, refunded_cents, status, description, created_at, stripe_payment_intent_id").eq("id", b.payment_id).maybeSingle()).data : null;
+  const linkedPayment = b.payment_id && !linked.some((p) => p.id === b.payment_id) ? (await supabase.from("payments").select("id, processor, amount_cents, refunded_cents, status, description, created_at, stripe_payment_intent_id").eq("id", b.payment_id).maybeSingle()).data : null;
   const allPayments = linkedPayment ? [linkedPayment, ...linked] : linked;
   const unpaid = !b.package_id && !allPayments.some((p) => ["succeeded", "partially_refunded", "refunded"].includes(p.status)) && (pricing?.total_cents ?? 0) > 0;
 
@@ -127,6 +127,7 @@ export default async function AdminBooking({ params, searchParams }: PageProps<"
                   <span className={`badge ${PAYMENT_STATUS[p.status]?.cls}`}>{PAYMENT_STATUS[p.status]?.label}</span>
                 </div>
                 {p.refunded_cents > 0 && <p className="text-xs text-stone-500">Refunded {formatCents(p.refunded_cents)}</p>}
+                {p.processor === "truemed" && <p className="text-xs text-stone-500">HSA/FSA via Truemed: refund from your Truemed dashboard.</p>}
                 <p className="text-xs text-stone-500">{p.description ?? formatDate(p.created_at)}</p>
                 {p.stripe_payment_intent_id && ["succeeded", "partially_refunded"].includes(p.status) && (
                   <details className="mt-2">

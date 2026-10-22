@@ -11,7 +11,7 @@ import { formatDateTime } from "@/lib/time";
  */
 export default async function BookingConfirmed({ searchParams }: PageProps<"/parent/bookings/confirmed">) {
   const user = await requireRole("parent");
-  const { session_id: sessionId, booking } = await searchParams;
+  const { session_id: sessionId, booking, payment: paymentParam } = await searchParams;
   const supabase = await createClient();
 
   let paymentId: string | null = null;
@@ -25,6 +25,15 @@ export default async function BookingConfirmed({ searchParams }: PageProps<"/par
         const details = await paymentsGateway().completedCheckout(sessionId);
         if (details.paid && details.paymentId === payment.id) await fulfillPayment({ ...details, paymentId: payment.id });
       }
+    }
+  }
+
+  // HSA/FSA (Truemed) returns here with our payment id; fulfillment waits for Truemed's webhook.
+  if (!paymentId && typeof paymentParam === "string" && /^[0-9a-f-]{36}$/i.test(paymentParam)) {
+    const { data: payment } = await supabase.from("payments").select("id, package_id").eq("id", paymentParam).maybeSingle();
+    if (payment) {
+      paymentId = payment.id;
+      packageId = payment.package_id;
     }
   }
 
@@ -54,7 +63,7 @@ export default async function BookingConfirmed({ searchParams }: PageProps<"/par
                 {formatDateTime(l.starts_at)}
                 {instructor ? ` · ${instructor.first_name}` : ""}
               </span>
-              <span className="badge bg-brand-50 text-brand-700">{l.status === "pending_payment" ? "processing payment" : l.status.replace("_", " ")}</span>
+              <span className="badge bg-brand-50 text-brand-700">{l.status === "pending_payment" ? "confirming payment" : l.status.replace("_", " ")}</span>
             </li>
           );
         })}

@@ -173,6 +173,7 @@ export async function savePolicies(_: FormState, fd: FormData): Promise<FormStat
       contact_sharing: sharing,
       max_children_per_lesson: nn(int(fd, "max_children_per_lesson"), "Max swimmers"),
       day_pass_enabled: bool(fd, "day_pass_enabled"),
+      hsa_fsa_enabled: bool(fd, "hsa_fsa_enabled"),
       partner_club_name: text(fd, "partner_club_name"),
       support_email: text(fd, "support_email"),
       support_phone: text(fd, "support_phone"),

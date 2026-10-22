@@ -343,3 +343,13 @@ export function dayPassPaymentLink(p: { name: string; clubName: string; amountCe
     null,
   );
 }
+
+export function adminManualRefund(p: { lesson: LessonInfo; amountCents: number; url: string }): Rendered {
+  return build(
+    `Refund needed in Truemed: ${money(p.amountCents)}`,
+    "An HSA/FSA lesson was cancelled",
+    [`A family cancelled the lesson on ${when(p.lesson)}. It was paid with HSA/FSA through Truemed, so the ${money(p.amountCents)} refund has to be issued from your Truemed dashboard.`],
+    { label: "Open the booking", url: p.url },
+    null,
+  );
+}

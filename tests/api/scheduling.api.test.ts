@@ -6,9 +6,13 @@ import { clientAs, configureServerEnv, enabled, ids } from "./setup";
 const db = new pg.Pool({ connectionString: process.env.TEST_DATABASE_URL });
 const created: string[] = [];
 
-/** Next Saturday at least 2 days out — Maya, Jordan and Tyler all cover zone B then. */
+/**
+ * A Saturday at least two weeks out — Maya, Jordan and Tyler all cover zone B
+ * then, and it's past the seed's lessons (placed relative to today), so the
+ * test doesn't depend on which weekday it runs.
+ */
 function nextSaturday(): string {
-  let d = addDays(laDateString(), 2);
+  let d = addDays(laDateString(), 14);
   while (weekdayOf(d) !== 6) d = addDays(d, 1);
   return d;
 }

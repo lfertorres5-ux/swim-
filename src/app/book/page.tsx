@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { hsaFsaAvailable } from "@/lib/booking/checkout";
 import { laDateString } from "@/lib/time";
 import { BookingWizard } from "./booking-wizard";
 
@@ -53,6 +54,7 @@ export default async function BookPage({ searchParams }: PageProps<"/book">) {
           mapsBrowserKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || null}
           today={today}
           initialInstructorId={typeof instructor === "string" ? instructor : null}
+          hsaFsaAvailable={await hsaFsaAvailable()}
         />
       </main>
     </>

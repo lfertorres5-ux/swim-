@@ -5,6 +5,7 @@ import { ZipChecker } from "@/components/landing/zip-checker";
 import { brand } from "@/config/brand";
 import { PHOTOS } from "@/content/photos";
 import { getContact } from "@/lib/contact";
+import { hsaFsaAvailable } from "@/lib/booking/checkout";
 import { LaneRope, TileBand, WaveEdge } from "@/components/motifs";
 import { Photo } from "@/components/photo";
 import { SiteFooter } from "@/components/site-footer";
@@ -23,17 +24,21 @@ export default async function Home() {
     supabase.from("platform_settings").select("cancellation_window_hours").single(),
     loadInstructorCards(),
   ]);
-  const contact = await getContact();
+  const [contact, hsaFsa] = await Promise.all([getContact(), hsaFsaAvailable()]);
   const extra = money(pricing?.extra_child_cents ?? 0);
   const included = pricing?.included_children ?? 2;
 
   const cancelHours = settings?.cancellation_window_hours ?? 24;
   const faqs: [string, string][] = [
-    ["What do I need?", "Just a pool — yours, a neighbor's or your HOA's. Ideally around 82°F for little ones. We bring everything else."],
+    ["What do I need?", "A pool — yours, a neighbor's or your HOA's — ideally with steps or a shallow area so little swimmers can stand and get in safely, and warm water (around 82–86°F for young kids). We bring the kickboards and everything else."],
+    ["We don't have a pool. Can we still take lessons?", "In certain cases, yes: we can teach at one of our partner country club pools. Get in touch and we'll let you know what's possible for your family and schedule."],
     ["How young can my child start?", "Some of our instructors teach babies from 6 months, with a parent in the water."],
     ["Can siblings share a lesson?", `Yes — up to ${included} kids are included, and each extra swimmer is ${extra}.`],
     ["What if we need to cancel?", `Cancel or reschedule free from your account up to ${cancelHours} hours ahead. If the weather turns, your instructor will reach out.`],
-    ["How do I pay?", "Online when you book. You'll get a receipt for every lesson."],
+    ["How do I pay?", hsaFsa ? "Online when you book, by card or with your HSA/FSA card through Truemed. You'll get a receipt for every lesson." : "Online when you book. You'll get a receipt for every lesson."],
+    ...(hsaFsa
+      ? ([["Can I use my HSA or FSA?", "Possibly. Swim lessons may qualify for HSA/FSA funds when they're recommended for a health reason. At checkout, choose “HSA / FSA card”: Truemed asks a few quick health questions, and if a licensed provider approves, you pay with your HSA/FSA card. If not, you can pay by card instead."]] as [string, string][])
+      : []),
   ];
 
   return (
@@ -232,6 +237,7 @@ export default async function Home() {
                 ))}
                 <li>Book a time next to a neighbor&apos;s lesson and save {money(pricing?.neighborhood_discount_cents ?? 0)}</li>
                 <li>Free to cancel or move up to {cancelHours} hours before</li>
+                {hsaFsa && <li className="font-medium text-brand-800">Pay with HSA/FSA through Truemed, if your lessons qualify</li>}
               </ul>
             </div>
           </div>
@@ -272,6 +278,42 @@ export default async function Home() {
         </div>
       </section>
       <WaveEdge fill="var(--color-sand)" className="-mt-px bg-white" />
+
+      {/* What you need */}
+      <section id="pool" className="mx-auto w-full max-w-6xl px-5 pt-16">
+        <h2 className="text-3xl font-semibold sm:text-4xl">What you need</h2>
+        <p className="mt-3 max-w-2xl text-stone-600">Lessons happen at your pool, so here&apos;s the short checklist. Your instructor brings everything else.</p>
+        <div className="mt-8 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {[
+              ["A pool", "Yours, a neighbor's, or your HOA or community pool (with permission). Any shape works."],
+              ["Steps or a shallow area", "Pool steps, a bench or a shallow end so little swimmers can stand, sit and get in and out safely."],
+              ["Warm water", "Around 82–86°F is ideal for young kids. Cooler water shortens how long they can comfortably stay in."],
+              ["Clear, safe access", "An unlocked gate or a code, a clear path to the pool, and anything we should know in the booking notes."],
+            ].map(([title, text], i) => (
+              <li key={title} className="flex gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-200/70">
+                <span aria-hidden className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-700">
+                  {i + 1}
+                </span>
+                <span>
+                  <span className="block font-semibold text-stone-900">{title}</span>
+                  <span className="mt-0.5 block text-sm text-stone-600">{text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div id="no-pool" className="relative flex scroll-mt-24 flex-col justify-between overflow-hidden rounded-3xl bg-brand-800 p-6 text-white">
+            <TileBand className="absolute inset-x-0 top-0 opacity-80" />
+            <div className="pt-6">
+              <h3 className="text-2xl font-semibold text-white">No pool? We may still have you covered.</h3>
+              <p className="mt-2 text-brand-100">In certain cases, we can teach at one of our partner country club pools. Tell us a bit about your family and schedule, and we&apos;ll let you know what&apos;s possible.</p>
+            </div>
+            <a href="#contact" className="mt-6 inline-flex w-fit items-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-brand-50">
+              Ask about club lessons →
+            </a>
+          </div>
+        </div>
+      </section>
 
       <section className="mx-auto w-full max-w-3xl px-5 py-16">
         <h2 className="text-3xl font-semibold sm:text-4xl">Questions</h2>

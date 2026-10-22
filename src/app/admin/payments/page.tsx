@@ -12,7 +12,7 @@ export default async function AdminPayments({ searchParams }: PageProps<"/admin/
   const supabase = await createClient();
   let q = supabase
     .from("payments")
-    .select("id, amount_cents, refunded_cents, status, kind, description, created_at, booking_id, stripe_payment_intent_id, receipt_url, parent:parents(user:users(first_name, last_name, email))")
+    .select("id, processor, amount_cents, refunded_cents, status, kind, description, created_at, booking_id, stripe_payment_intent_id, receipt_url, parent:parents(user:users(first_name, last_name, email))")
     .order("created_at", { ascending: false })
     .limit(100);
   if (status === "paid") q = q.in("status", ["succeeded", "partially_refunded"]);
@@ -59,6 +59,7 @@ export default async function AdminPayments({ searchParams }: PageProps<"/admin/
                 {p.refunded_cents > 0 && <span className="block text-xs text-stone-500">−{formatCents(p.refunded_cents)}</span>}
               </span>
               <span className={`badge ${PAYMENT_STATUS[p.status]?.cls}`}>{PAYMENT_STATUS[p.status]?.label}</span>
+              {p.processor === "truemed" && <span className="badge bg-brand-50 text-brand-800" title="Refund from your Truemed dashboard">HSA/FSA</span>}
               {refundable > 0 && (
                 <ActionForm action={refundAction} submitLabel="Refund" variant="link" inline confirm="Refund this amount?">
                   <input type="hidden" name="paymentId" value={p.id} />

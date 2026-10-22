@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { InstructorCard } from "@/components/instructor-card";
 import type { InstructorCardData } from "@/lib/instructor-cards";
@@ -27,6 +28,8 @@ export type WizardProps = {
   mapsBrowserKey: string | null;
   today: string;
   initialInstructorId: string | null;
+  /** HSA/FSA checkout through Truemed is switched on. */
+  hsaFsaAvailable: boolean;
 };
 
 type Child = { id: string; firstName: string; birthDate: string | null; swimLevel: string };
@@ -105,6 +108,7 @@ export function BookingWizard(props: WizardProps) {
 
   // 6. Review
   const [promo, setPromo] = useState("");
+  const [payWith, setPayWith] = useState<"card" | "hsa_fsa">("card");
   const [quote, setQuote] = useState<(Quote & { promoMessage?: string }) | null>(null);
 
   const weeks = plan.kind === "recurring" ? plan.weeks : null;
@@ -241,6 +245,7 @@ export function BookingWizard(props: WizardProps) {
         plan,
         start: slot.start,
         promoCode: promo || undefined,
+        paymentMethod: payWith,
       });
       if (!r.ok) {
         setError(r.error);
@@ -316,6 +321,12 @@ export function BookingWizard(props: WizardProps) {
       {step === 0 && (
         <section className="space-y-5">
           <Heading title="Where's the pool?" sub="We come to you anywhere in our San Diego service area. Your instructor only sees the address on lesson day." />
+          <p className="text-sm text-stone-600">
+            Yours, a neighbor&apos;s or your HOA&apos;s pool all work, ideally with steps or a shallow area.{" "}
+            <Link href="/#no-pool" className="font-medium text-brand-700 underline">
+              No pool?
+            </Link>
+          </p>
           <div className="card space-y-4">
             {!manual && props.mapsBrowserKey ? (
               <>
@@ -609,12 +620,41 @@ export function BookingWizard(props: WizardProps) {
               )}
             </div>
           </div>
+          {props.hsaFsaAvailable && quote && quote.totalCents > 0 && (
+            <div className="card" role="radiogroup" aria-labelledby="pay-with-label">
+              <p id="pay-with-label" className="font-semibold text-stone-900">
+                How would you like to pay?
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {(
+                  [
+                    ["card", "Credit or debit card", "Secure checkout by Stripe"],
+                    ["hsa_fsa", "HSA / FSA card", "Through Truemed: a quick health survey checks if your lessons qualify"],
+                  ] as const
+                ).map(([value, title, note]) => (
+                  <label key={value} className={`relative cursor-pointer rounded-2xl border-2 p-4 transition ${payWith === value ? "border-brand-500 bg-brand-50/40" : "border-stone-200 hover:border-brand-200"}`}>
+                    <input type="radio" name="pay-with" value={value} checked={payWith === value} onChange={() => setPayWith(value)} className="sr-only" />
+                    <Picked on={payWith === value} />
+                    <span className="block pr-8 font-medium text-stone-900">{title}</span>
+                    <span className="mt-0.5 block text-sm text-stone-500">{note}</span>
+                  </label>
+                ))}
+              </div>
+              {payWith === "hsa_fsa" && (
+                <p className="mt-3 text-xs text-stone-500">
+                  Eligibility is decided by Truemed&apos;s licensed providers, not by us. If you don&apos;t qualify, you can come back and pay by card. Your time is held for an hour.
+                </p>
+              )}
+            </div>
+          )}
           <Actions
             onBack={back}
-            primary={pending ? "One moment…" : quote?.totalCents === 0 ? "Confirm booking" : quote ? `Pay ${money(quote.totalCents)}` : "Pay"}
+            primary={
+              pending ? "One moment…" : quote?.totalCents === 0 ? "Confirm booking" : payWith === "hsa_fsa" && props.hsaFsaAvailable ? "Continue to HSA/FSA checkout" : quote ? `Pay ${money(quote.totalCents)}` : "Pay"
+            }
             disabled={pending || !quote}
             onPrimary={pay}
-            note="Secure checkout by Stripe"
+            note={payWith === "hsa_fsa" && props.hsaFsaAvailable ? "HSA/FSA checkout by Truemed" : "Secure checkout by Stripe"}
           />
         </section>
       )}

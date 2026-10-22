@@ -1,5 +1,5 @@
 import "server-only";
-import { notifyCancelled, notifyRescheduled, safely } from "@/lib/notifications/events";
+import { notifyCancelled, notifyManualRefund, notifyRescheduled, safely } from "@/lib/notifications/events";
 import { refundPayment, RefundError } from "@/lib/payments/refunds";
 import { ageInMonths } from "@/lib/scheduling/engine";
 import { offerNextInstructor } from "@/lib/scheduling/offers";
@@ -68,13 +68,16 @@ export async function cancelBooking(parentId: string, bookingId: string, reason:
 
   const preview = await previewCancellation(parentId, bookingId, now);
   let refundId: string | null = null;
+  let manualRefundCents = 0;
 
   if (preview.refundCents > 0 && booking.payment_id) {
     try {
       refundId = (await refundPayment(booking.payment_id, preview.refundCents, `cancel-${bookingId}`, { booking_id: bookingId })).refundId;
     } catch (err) {
-      if (err instanceof RefundError) throw new BookingError("refund_unavailable", "We couldn't find the payment for this lesson — please contact us.");
-      throw err;
+      if (!(err instanceof RefundError)) throw err;
+      if (!err.manual) throw new BookingError("refund_unavailable", "We couldn't find the payment for this lesson — please contact us.");
+      // HSA/FSA (Truemed): cancel now; the owner refunds from Truemed and is alerted below.
+      manualRefundCents = preview.refundCents;
     }
   }
 
@@ -94,8 +97,9 @@ export async function cancelBooking(parentId: string, bookingId: string, reason:
     entity_type: "booking",
     entity_id: bookingId,
     booking_id: bookingId,
-    metadata: { on_time: preview.onTime, refund_cents: preview.refundCents, refund_id: refundId, credit_restored: preview.restoreCredit },
+    metadata: { on_time: preview.onTime, refund_cents: preview.refundCents, refund_id: refundId, credit_restored: preview.restoreCredit, manual_refund_cents: manualRefundCents },
   });
+  if (manualRefundCents > 0) await safely("manual refund alert", () => notifyManualRefund(bookingId, manualRefundCents));
   await safely("cancelled", () => notifyCancelled(bookingId, { refundCents: preview.refundCents, creditRestored: preview.restoreCredit }));
   // TODO(phase 6): booking.cancelled webhook.
   return { ...preview, refundId };

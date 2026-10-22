@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { siteUrl } from "@/lib/env";
 import { paymentsGateway } from "@/lib/payments/gateway";
+import { createTruemedSession, truemedConfigured } from "@/lib/payments/truemed";
 import { loadCatalog, lookupPromo } from "@/lib/pricing/catalog";
 import { PricingError, quoteLesson, type Plan, type PlanKind, type Quote } from "@/lib/pricing/quote";
 import { ageInMonths } from "@/lib/scheduling/engine";
@@ -29,6 +30,8 @@ export const checkoutInputSchema = z.object({
   plan: planSchema,
   start: z.iso.datetime({ offset: true }),
   promoCode: z.string().max(40).optional(),
+  /** "hsa_fsa" pays through Truemed (only when enabled); everything else is a card via Stripe. */
+  paymentMethod: z.enum(["card", "hsa_fsa"]).optional(),
 });
 export type CheckoutInput = z.infer<typeof checkoutInputSchema>;
 
@@ -277,6 +280,37 @@ export async function createBookingCheckout(parentId: string, raw: CheckoutInput
     return { kind: "confirmed", url: `/parent/bookings/confirmed?booking=${bookingIds[0]}`, bookingIds };
   }
 
+  // HSA/FSA through Truemed (hosted checkout; fulfilled by Truemed's webhook).
+  if (input.paymentMethod === "hsa_fsa") {
+    if (!(await hsaFsaAvailable())) {
+      await admin.rpc("release_booking_hold", { p_payment_id: paymentId });
+      throw new BookingError("hsa_fsa_unavailable", "HSA/FSA payment isn't available right now. Please pay by card.");
+    }
+    try {
+      const session = await createTruemedSession({
+        paymentId,
+        amountCents: quote.totalCents,
+        items: [{ id: paymentId, name: title, amountCents: quote.totalCents, quantity: 1 }],
+        customerEmail: user.email,
+        customerName: [user.first_name, user.last_name].filter(Boolean).join(" ") || null,
+        successUrl: `${siteUrl()}/parent/bookings/confirmed?payment=${paymentId}`,
+        failureUrl: `${siteUrl()}/book/cancelled?payment=${paymentId}`,
+      });
+      // The eligibility survey takes a few minutes longer than card checkout.
+      const holdUntil = new Date(now + Math.max(60, data.settings.paymentHoldMinutes) * 60_000).toISOString();
+      await Promise.all([
+        admin.from("payments").update({ processor: "truemed", processor_session_id: session.sessionId }).eq("id", paymentId),
+        admin.from("bookings").update({ hold_expires_at: holdUntil }).eq("payment_id", paymentId).eq("status", "pending_payment"),
+      ]);
+      return { kind: "redirect", url: session.url, paymentId, bookingIds };
+    } catch (err) {
+      await admin.rpc("release_booking_hold", { p_payment_id: paymentId });
+      if (err instanceof BookingError) throw err;
+      console.error("Truemed checkout failed", err);
+      throw new BookingError("hsa_fsa_unavailable", "We couldn't start HSA/FSA checkout. Please try again or pay by card.");
+    }
+  }
+
   // Stripe Checkout.
   const gateway = paymentsGateway();
   try {
@@ -306,6 +340,13 @@ export async function createBookingCheckout(parentId: string, raw: CheckoutInput
     await admin.rpc("release_booking_hold", { p_payment_id: paymentId });
     throw err;
   }
+}
+
+/** HSA/FSA checkout is offered when Truemed is configured and the owner has switched it on. */
+export async function hsaFsaAvailable(): Promise<boolean> {
+  if (!truemedConfigured()) return false;
+  const { data } = await createAdminClient().from("platform_settings").select("hsa_fsa_enabled").single();
+  return Boolean(data?.hsa_fsa_enabled);
 }
 
 function describeOrder(quote: Quote, duration: number, swimmers: number, start: number, zone: string) {

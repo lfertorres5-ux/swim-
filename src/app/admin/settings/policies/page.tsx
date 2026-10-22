@@ -1,4 +1,5 @@
 import { ActionForm, Field } from "@/components/action-form";
+import { truemedConfigured } from "@/lib/payments/truemed";
 import { createClient } from "@/lib/supabase/server";
 import { savePolicies } from "../actions";
 
@@ -69,6 +70,17 @@ export default async function Policies() {
             <option value="never">Never share</option>
           </select>
         </Field>
+      </Group>
+      <Group title="HSA/FSA payments (Truemed)" note="Families can pay with HSA/FSA funds through Truemed, which runs a short eligibility survey. Needs an approved Truemed merchant account.">
+        <label className="flex items-start gap-2 pt-1 text-sm sm:col-span-2">
+          <input type="checkbox" name="hsa_fsa_enabled" defaultChecked={s.hsa_fsa_enabled} className="mt-0.5" disabled={!truemedConfigured() && !s.hsa_fsa_enabled} />
+          <span>
+            Offer “Pay with HSA/FSA” at checkout
+            <span className="block text-stone-500">
+              {truemedConfigured() ? "Truemed is connected." : "Add TRUEMED_API_KEY in Vercel first (see docs/hsa-fsa.md). Until then this stays off."}
+            </span>
+          </span>
+        </label>
       </Group>
       <Group title="Partner Club Day Pass">
         <label className="flex items-center gap-2 pt-6 text-sm">
