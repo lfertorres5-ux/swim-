@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { InstructorCard } from "@/components/instructor-card";
-import { ServiceAreaMap } from "@/components/landing/service-area-map";
+import { AreaSearch } from "@/components/landing/area-search";
 import { ZipChecker } from "@/components/landing/zip-checker";
 import { brand } from "@/config/brand";
 import { PHOTOS } from "@/content/photos";
@@ -9,7 +9,6 @@ import { LaneRope, TileBand, WaveEdge } from "@/components/motifs";
 import { Photo } from "@/components/photo";
 import { SiteFooter } from "@/components/site-footer";
 import { loadInstructorCards } from "@/lib/instructor-cards";
-import type { GeoJsonPolygon } from "@/lib/geo/san-diego-county";
 import { createClient } from "@/lib/supabase/server";
 
 const money = (c: number) => `$${(c / 100).toFixed(c % 100 ? 2 : 0)}`;
@@ -18,7 +17,7 @@ export default async function Home() {
   const supabase = await createClient();
   const [{ data: prices }, { data: zones }, { data: pricing }, { data: offerings }, { data: settings }, instructors] = await Promise.all([
     supabase.from("lesson_prices").select("duration_minutes, price_cents").eq("is_active", true).order("sort_order"),
-    supabase.from("zones").select("code, name, travel_fee_cents, min_booking_minutes, neighborhoods, postal_codes, boundary, map_color").eq("is_bookable", true).order("sort_order"),
+    supabase.from("zones").select("code, name, travel_fee_cents, min_booking_minutes, neighborhoods, postal_codes, map_color").eq("is_bookable", true).order("sort_order"),
     supabase.from("pricing_config").select("*").single(),
     supabase.from("package_offerings").select("name, lesson_count, discount_pct").eq("is_active", true).order("sort_order"),
     supabase.from("platform_settings").select("cancellation_window_hours").single(),
@@ -57,10 +56,7 @@ export default async function Home() {
       {/* Hero */}
       <section className="mx-auto grid w-full max-w-6xl gap-12 px-5 pt-4 pb-14 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:pt-12 lg:pb-20">
         <div>
-          <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold tracking-wide text-brand-800 uppercase shadow-sm">
-            <span className="h-2 w-2 rounded-full bg-lane-red" /> Private lessons · we come to you
-          </p>
-          <h1 className="mt-5 text-4xl leading-[1.05] font-semibold sm:text-6xl">
+          <h1 className="text-4xl leading-[1.05] font-semibold sm:text-6xl">
             Swim lessons in{" "}
             <span className="relative whitespace-nowrap">
               your own backyard.
@@ -118,6 +114,72 @@ export default async function Home() {
         </div>
       </section>
       <WaveEdge fill="var(--color-sand)" className="-mt-px bg-white" />
+
+      {/* How we're different */}
+      <section id="different" className="mx-auto w-full max-w-6xl px-5 pt-16">
+        <div className="relative overflow-hidden rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-stone-200/70 sm:p-10">
+          <span aria-hidden className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-brand-50" />
+          <div className="relative">
+            <h2 className="max-w-2xl text-3xl font-semibold sm:text-4xl">Not a franchise. San Diego swimmers.</h2>
+            <p className="mt-3 max-w-2xl text-stone-600">
+              We&apos;re local swimmers who care about one thing: giving every family access to swimming taught by the very best instructors.
+            </p>
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                ["Local swimmers", "We swim here too. This is our community's pools, beaches and kids, not a territory on a map."],
+                ["Small on purpose", "Staying local lets us be choosy. We only bring on the most capable instructors, not whoever's available."],
+                ["Partners, not employees", "Our instructors are partners in the business. They choose to teach here and own the results with you."],
+                ["Quality, every lesson", "Every lesson ends with a progress note, and every instructor's certifications are tracked and kept current."],
+              ].map(([title, text], i) => (
+                <div key={title}>
+                  <span className="font-display text-3xl font-semibold text-coral-500">0{i + 1}</span>
+                  <h3 className="mt-2 text-lg font-semibold">{title}</h3>
+                  <p className="mt-1 text-sm text-stone-600">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Vetting */}
+      <section id="vetting" className="mx-auto w-full max-w-6xl px-5 py-16">
+        <div className="grid gap-10 lg:grid-cols-[1fr_1.4fr] lg:items-start">
+          <div className="lg:sticky lg:top-8">
+            <h2 className="text-3xl font-semibold sm:text-4xl">Who&apos;s in the water with your kids</h2>
+            <p className="mt-3 text-stone-600">
+              Every instructor is a former <strong className="text-stone-900">NCAA Division I and/or national-level competitive swimmer</strong>. Speed in the pool is only the start. Before anyone
+              teaches a lesson, they pass every step below.
+            </p>
+            <div className="mt-6 flex items-center gap-4 rounded-3xl bg-brand-800 p-5 text-white">
+              <span className="font-display text-5xl leading-none font-semibold text-coral-400">D1</span>
+              <span className="text-sm text-brand-100">
+                and national-level athletes only, who also know how to teach a nervous four-year-old.
+              </span>
+            </div>
+          </div>
+          <ol className="relative space-y-3">
+            <span aria-hidden className="absolute top-4 bottom-4 left-[19px] w-[3px] rounded-full bg-[repeating-linear-gradient(to_bottom,var(--color-lane-blue)_0_8px,#fff_8px_14px)] ring-1 ring-stone-200" />
+            {[
+              ["Elite competitive background", "NCAA Division I and/or national-level meet experience, confirmed against published results and rosters."],
+              ["Lifeguard + CPR/AED + First Aid", "Current American Red Cross (or equivalent) lifeguarding and CPR/AED/First Aid certification, kept on file and tracked to expiry."],
+              ["Certified swim instructor", "Water Safety Instructor (WSI) or an equivalent learn-to-swim teaching certification."],
+              ["Background check", "A national criminal background check and sex-offender registry search before activation."],
+              ["In-water audition", "A live teaching session with a real student, reviewed by the owner: patience, safety habits and how they handle a nervous swimmer."],
+              ["Reference checks", "Two references from coaches, employers or families they've taught."],
+              ["Ongoing standards", "Certifications re-checked before they expire, and family progress notes read after every lesson."],
+            ].map(([title, text], i) => (
+              <li key={title} className="relative flex gap-4 rounded-2xl bg-white p-4 pr-5 shadow-sm ring-1 ring-stone-200/70">
+                <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-coral-500 font-display text-sm font-semibold text-white ring-4 ring-sand">{i + 1}</span>
+                <span>
+                  <span className="block font-semibold text-stone-900">{title}</span>
+                  <span className="mt-0.5 block text-sm text-stone-600">{text}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
 
       {/* Pricing */}
       <section id="pricing" className="mx-auto w-full max-w-6xl px-5 py-16">
@@ -199,22 +261,14 @@ export default async function Home() {
 
       <WaveEdge fill="#ffffff" />
       <section className="bg-white">
-        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 lg:grid-cols-2 lg:items-center">
+        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 lg:grid-cols-[1fr_1.3fr]">
           <div>
             <h2 className="text-3xl font-semibold sm:text-4xl">Where we teach</h2>
-            <p className="mt-3 text-stone-600">Coastal North County and greater San Diego. Not sure? Pop your ZIP in above.</p>
-            <ul className="mt-5 space-y-3 text-sm text-stone-600">
-              {(zones ?? []).map((z) => (
-                <li key={z.code} className="flex gap-3">
-                  <span className="mt-1 h-3 w-3 shrink-0 rounded-sm" style={{ background: z.map_color ?? "#2e8689" }} />
-                  <span>
-                    <span className="font-medium text-stone-800">{z.name}:</span> {z.neighborhoods.join(", ")}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <p className="mt-3 text-stone-600">Coastal North County and greater San Diego. Type your ZIP code or neighborhood to see if we come to you, and what it costs.</p>
           </div>
-          <ServiceAreaMap zones={(zones ?? []).map((z) => ({ code: z.code, name: z.name, color: z.map_color, boundary: z.boundary as GeoJsonPolygon | null, travelFeeCents: z.travel_fee_cents }))} />
+          <AreaSearch
+            zones={(zones ?? []).map((z) => ({ code: z.code, name: z.name, travelFeeCents: z.travel_fee_cents, minBookingMinutes: z.min_booking_minutes, postalCodes: z.postal_codes, neighborhoods: z.neighborhoods, color: z.map_color }))}
+          />
         </div>
       </section>
       <WaveEdge fill="var(--color-sand)" className="-mt-px bg-white" />
