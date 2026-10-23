@@ -1,19 +1,30 @@
 <!doctype html>
 <html>
-  <body style="margin:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0f172a">
+  <body style="margin:0;background:#faf6ef;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1917">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;padding:32px;border:1px solid #e2e8f0">
-            <tr><td>
-              <h1 style="font-size:20px;margin:0 0 12px">Confirm your email</h1>
-              <p style="font-size:15px;line-height:1.5;color:#475569;margin:0 0 24px">Tap the button below to confirm your email and finish creating your family account.</p>
-              <!-- token_hash flow works even if the link is opened on a different device than the one that requested it -->
-              <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next={{ .RedirectTo }}"
-                 style="display:inline-block;background:#0284c7;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">Confirm email</a>
-              <p style="font-size:13px;color:#94a3b8;margin:24px 0 0">If you didn't request this, you can ignore this email.</p>
-            </td></tr>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #f2ebdf">
+            <tr>
+              <td style="background:#1f585d;padding:22px 32px">
+                <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:600;color:#ffffff">Coastal Swim Co.</p>
+                <p style="margin:4px 0 0;font-size:13px;color:#d4eeec">Private swim lessons at your pool &middot; San Diego</p>
+              </td>
+            </tr>
+            <!-- lane rope -->
+            <tr><td style="height:6px;line-height:6px;font-size:0;background:repeating-linear-gradient(90deg,#ec7550 0 14px,#ffffff 14px 20px,#1f6fb2 20px 34px,#ffffff 34px 40px);background-color:#ec7550">&nbsp;</td></tr>
+            <tr>
+              <td style="padding:32px">
+                <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.25;color:#1d494d">Confirm your email</h1>
+                <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#57534e">Welcome! Tap the button below to confirm your email and finish setting up your Coastal Swim Co. account.</p>
+                <!-- token_hash flow works even if the link is opened on a different device than the one that requested it -->
+                <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next={{ .RedirectTo }}"
+                   style="display:inline-block;background:#236c71;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:13px 26px;border-radius:999px">Confirm my email</a>
+                <p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#a8a29e">This link works once and expires in one hour. If you didn&rsquo;t ask for it, you can ignore this email &mdash; nothing changes on your account.</p>
+              </td>
+            </tr>
           </table>
+          <p style="margin:16px 0 0;font-size:12px;color:#a8a29e">Coastal Swim Co. &middot; San Diego County</p>
         </td>
       </tr>
     </table>
