@@ -385,3 +385,49 @@ export async function notifyRenewalFailed(packageId: string, reason: string) {
     });
   }
 }
+
+// ---------------------------------------------------------------------------
+// Lesson logging
+// ---------------------------------------------------------------------------
+export async function notifyNoShow(bookingId: string) {
+  const { booking, lesson } = await lessonContext(bookingId);
+  const parent = await person(booking.parent_id);
+  if (parent) await enqueue(parent, "parent.no_show", t.parentNoShow({ lesson, url: `${siteUrl()}/book` }), { bookingId, dedupeKey: `noshow:${bookingId}:parent` });
+  const owner = adminAlertRecipient();
+  if (owner) await enqueue(owner, "admin.no_show", t.adminNoShow({ lesson, url: `${siteUrl()}/admin/bookings/${bookingId}` }), { bookingId, dedupeKey: `noshow:${bookingId}:admin` });
+}
+
+/**
+ * Lessons that ended but were never logged (no progress note, no no-show).
+ * The instructor is nudged once after the lesson; the owner hears after 3 days.
+ */
+export async function enqueueMissingNoteReminders(now = Date.now()) {
+  const admin = createAdminClient();
+  const { data: due } = await admin
+    .from("bookings")
+    .select("id, ends_at, instructor_id")
+    .eq("status", "confirmed")
+    .not("instructor_id", "is", null)
+    .lte("ends_at", new Date(now - 60 * 60_000).toISOString())
+    .gte("ends_at", new Date(now - 30 * 86_400_000).toISOString());
+
+  let count = 0;
+  for (const b of due ?? []) {
+    await safely(`note reminder ${b.id}`, async () => {
+      const { lesson } = await lessonContext(b.id);
+      const instructor = await person(b.instructor_id);
+      if (instructor) {
+        await enqueue(instructor, "instructor.note_reminder", t.instructorNoteReminder({ lesson, url: `${siteUrl()}/instructor/lessons/${b.id}/note` }), {
+          bookingId: b.id,
+          dedupeKey: `note-missing:${b.id}`,
+        });
+      }
+      const owner = adminAlertRecipient();
+      if (owner && Date.parse(b.ends_at) <= now - 3 * 86_400_000) {
+        await enqueue(owner, "admin.note_overdue", t.adminNoteOverdue({ lesson, url: `${siteUrl()}/admin/bookings/${b.id}` }), { bookingId: b.id, dedupeKey: `note-missing:${b.id}:admin` });
+      }
+      count++;
+    });
+  }
+  return count;
+}

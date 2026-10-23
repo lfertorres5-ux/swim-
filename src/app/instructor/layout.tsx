@@ -18,6 +18,7 @@ export default async function InstructorLayout({ children }: LayoutProps<"/instr
           { href: "/instructor/requests", label: "Requests" },
           { href: "/instructor/sub-board", label: "Sub board" },
           { href: "/instructor/families", label: "Families" },
+          { href: "/instructor/earnings", label: "Earnings" },
           { href: "/instructor/availability", label: "Availability" },
           { href: "/instructor/profile", label: "Profile" },
         ]}

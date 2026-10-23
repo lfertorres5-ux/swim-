@@ -30,6 +30,11 @@ export default async function Policies() {
           <input name="late_cancel_refund_pct" className="input" inputMode="numeric" defaultValue={Number(s.late_cancel_refund_pct)} />
         </Field>
       </Group>
+      <Group title="No-shows" note="When an instructor marks “Family didn't show”, the lesson isn't refunded and the instructor is paid this share of the lesson.">
+        <Field label="Instructor pay for a no-show (%)">
+          <input name="no_show_pay_pct" className="input" inputMode="numeric" defaultValue={s.no_show_pay_pct ?? 100} />
+        </Field>
+      </Group>
       <Group title="Booking">
         <Field label="Book at least (hours ahead)">
           <input name="min_booking_notice_hours" className="input" inputMode="numeric" defaultValue={s.min_booking_notice_hours} />

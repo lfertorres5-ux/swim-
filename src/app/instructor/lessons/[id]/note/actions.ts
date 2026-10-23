@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { flashQuery } from "@/lib/flash";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
-import { notifyLessonCompleted, safely } from "@/lib/notifications/events";
+import { notifyLessonCompleted, notifyNoShow, safely } from "@/lib/notifications/events";
 import { SKILL_STATES } from "@/lib/skills";
 import { createClient } from "@/lib/supabase/server";
 
@@ -35,4 +37,19 @@ export async function submitNoteAction(raw: unknown): Promise<{ ok: true; firstT
   if (data === true) await safely("lesson completed", () => notifyLessonCompleted(v.bookingId));
   revalidatePath("/instructor", "layout");
   return { ok: true, firstTime: data === true };
+}
+
+/** "Family didn't show": logs the lesson as a no-show and the instructor's no-show pay. */
+export async function markNoShowAction(formData: FormData) {
+  await requireRole("instructor");
+  const bookingId = z.guid().parse(formData.get("bookingId"));
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("mark_no_show", { p_booking_id: bookingId });
+  if (error) {
+    const msg = error.code === "SB005" ? "You can mark a no-show 10 minutes after the lesson starts." : error.code === "SB002" ? "This lesson was already logged." : "Couldn't mark the no-show.";
+    redirect(`/instructor/lessons/${bookingId}/note?${flashQuery("error", msg)}`);
+  }
+  await safely("no-show", () => notifyNoShow(bookingId));
+  revalidatePath("/instructor", "layout");
+  redirect(`/instructor/earnings?${flashQuery("notice", "Marked as a no-show. Your pay for it is logged below.")}`);
 }

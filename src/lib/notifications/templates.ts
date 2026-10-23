@@ -411,3 +411,50 @@ export function adminRenewalFailed(p: { familyName: string; renewal: RenewalInfo
     null,
   );
 }
+
+// ---------------------------------------------------------------------------
+// Lesson logging: no-shows and missing progress notes
+// ---------------------------------------------------------------------------
+export function parentNoShow(p: { lesson: LessonInfo; url: string }): Rendered {
+  const l = p.lesson;
+  return build(
+    `We missed you: ${whenShort(l)}`,
+    "We missed you today",
+    [
+      `${l.instructorFirstName ?? "Your instructor"} was at the pool for your ${l.durationMinutes}-minute lesson on ${when(l)}, but nobody was there, so it was marked as a no-show.`,
+      "No-shows aren't refunded. If something came up, reply to this email and let us know.",
+    ],
+    { label: "Book your next lesson", url: p.url },
+    null,
+  );
+}
+
+export function adminNoShow(p: { lesson: LessonInfo; url: string }): Rendered {
+  const l = p.lesson;
+  return build(`No-show: ${kids(l.swimmers)}, ${whenShort(l)}`, "A family didn't show", [`${l.instructorFirstName ?? "The instructor"} marked ${kids(l.swimmers)}'s lesson on ${when(l)} as a no-show.`], { label: "Open the booking", url: p.url }, null);
+}
+
+export function instructorNoteReminder(p: { lesson: LessonInfo; url: string }): Rendered {
+  const l = p.lesson;
+  return build(
+    `Progress note needed: ${kids(l.swimmers)}, ${whenShort(l)}`,
+    "Don't forget the progress note",
+    [
+      `Your lesson with ${kids(l.swimmers)} on ${when(l)} doesn't have a progress note yet.`,
+      "The note marks the lesson as taught and logs your pay. If the family didn't show, mark it as a no-show instead.",
+    ],
+    { label: "Write the note", url: p.url },
+    `${brand.name}: please write the progress note for ${kids(l.swimmers)} (${whenShort(l)}). It logs your pay.`,
+  );
+}
+
+export function adminNoteOverdue(p: { lesson: LessonInfo; url: string }): Rendered {
+  const l = p.lesson;
+  return build(
+    `Overdue note: ${kids(l.swimmers)}, ${whenShort(l)}`,
+    "A lesson still has no progress note",
+    [`${l.instructorFirstName ?? "The instructor"} hasn't logged ${kids(l.swimmers)}'s lesson on ${when(l)} (no note, no no-show) after 3 days. It isn't counted as taught or paid until they do.`],
+    { label: "Open the booking", url: p.url },
+    null,
+  );
+}

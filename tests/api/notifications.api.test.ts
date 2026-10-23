@@ -163,3 +163,32 @@ describe.skipIf(!enabled)("notifications", () => {
     expect((await messages(id)).some((r) => r.template === "parent.booking_confirmed")).toBe(false);
   });
 });
+
+describe.skipIf(!enabled)("missing progress notes", () => {
+  async function unloggedLesson(endedHoursAgo: number) {
+    const { rows } = await db.query(
+      `insert into public.bookings (parent_id, instructor_id, zone_id, neighborhood, starts_at, ends_at, status, kind, children_count)
+       values ($1, $2, $3, 'Del Mar', now() - make_interval(hours => $4) - interval '1 hour', now() - make_interval(hours => $4), 'confirmed', 'single', 1) returning id`,
+      [PRIYA, ids.maya, ids.zoneA, endedHoursAgo],
+    );
+    await db.query("insert into public.booking_children (booking_id, child_id) values ($1, $2)", [rows[0].id, kids.mia]);
+    return rows[0].id as string;
+  }
+
+  it("nudges the instructor once after the lesson, and the owner after 3 days", async () => {
+    const recent = await unloggedLesson(31);
+    const old = await unloggedLesson(101);
+    await events.enqueueMissingNoteReminders();
+    await events.enqueueMissingNoteReminders(); // runs daily; never sends twice
+    const recentMsgs = (await messages(recent)).filter((m) => m.channel === "email").map((m) => m.template);
+    const oldMsgs = (await messages(old)).filter((m) => m.channel === "email").map((m) => m.template);
+    expect(recentMsgs).toEqual(["instructor.note_reminder"]);
+    expect(oldMsgs.sort()).toEqual(["admin.note_overdue", "instructor.note_reminder"]);
+
+    // A logged lesson (completed) gets nothing.
+    const logged = await unloggedLesson(171);
+    await db.query("update public.bookings set status = 'completed' where id = $1", [logged]);
+    await events.enqueueMissingNoteReminders();
+    expect(await messages(logged)).toEqual([]);
+  });
+});

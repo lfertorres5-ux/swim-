@@ -161,6 +161,7 @@ export async function savePolicies(_: FormState, fd: FormData): Promise<FormStat
     const row = {
       cancellation_window_hours: nn(int(fd, "cancellation_window_hours"), "Cancellation window"),
       late_cancel_refund_pct: nn(int(fd, "late_cancel_refund_pct"), "Late refund"),
+      no_show_pay_pct: nn(int(fd, "no_show_pay_pct"), "No-show pay"),
       min_booking_notice_hours: nn(int(fd, "min_booking_notice_hours"), "Booking notice"),
       max_booking_horizon_days: nn(int(fd, "max_booking_horizon_days"), "Booking horizon"),
       booking_request_window_hours: nn(int(fd, "booking_request_window_hours"), "Reply window"),
