@@ -17,8 +17,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <Link href="/" className="mb-8 text-sm font-semibold text-brand-700">
         ← {brand.name}
       </Link>
-      <h1 className="text-3xl font-semibold tracking-tight text-stone-900">Sign in</h1>
-      <p className="mt-2 mb-8 text-stone-600">New here? Signing in creates your family account — no password needed.</p>
+      <h1 className="h-section">Sign in</h1>
+      <p className="mt-4 mb-8 text-stone-600">New here? Signing in creates your family account. No password needed.</p>
       <LoginForm next={next} />
     </main>
   );

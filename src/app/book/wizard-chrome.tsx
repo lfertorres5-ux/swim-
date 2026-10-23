@@ -68,7 +68,7 @@ export function SwimPass({ items, current, onJump, total }: { items: PassItem[];
   return (
     <aside className="sticky top-20 overflow-hidden rounded-3xl bg-brand-800 text-brand-50 shadow-lg">
       <div className="flex items-center justify-between px-5 pt-5">
-        <p className="text-xs font-semibold tracking-[0.18em] text-brand-200 uppercase">Swim pass</p>
+        <p className="text-xs font-semibold tracking-[0.18em] text-brand-200 uppercase">Your booking</p>
         <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-coral-400" />
       </div>
       <ul className="mt-3 space-y-0 px-5 pb-4">

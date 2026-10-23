@@ -361,7 +361,7 @@ export function BookingWizard(props: WizardProps) {
       {step === 1 && zone && (
         <section className="space-y-5">
           <p className="rounded-2xl bg-brand-50 px-4 py-3 text-sm text-brand-900">
-            Good news — we come to {neighborhood ?? address.city}.{" "}
+            Good news: we come to {neighborhood ?? address.city}.{" "}
             {zone.travelFeeCents ? `There's a ${money(zone.travelFeeCents)} travel fee per lesson.` : "No travel fee."}
             {zone.minBookingMinutes ? ` Lessons here are at least ${zone.minBookingMinutes} minutes.` : ""}{" "}
             <button className="underline" onClick={() => setStep(0)}>
@@ -413,7 +413,7 @@ export function BookingWizard(props: WizardProps) {
             Up to {props.includedChildren} kids per lesson at no extra cost, then {money(props.extraChildCents)} each.
           </p>
 
-          <Heading title="How long in the water?" />
+          <Heading title="How long should each lesson be?" />
           <div className="grid grid-cols-3 gap-2">
             {props.prices.map((p) => {
               const disabled = p.durationMinutes < zone.minBookingMinutes;
@@ -432,19 +432,19 @@ export function BookingWizard(props: WizardProps) {
               );
             })}
           </div>
-          <Actions onBack={back} primary={pending ? "One sec…" : "Continue"} disabled={pending || !duration || childIds.length === 0} onPrimary={continueToInstructors} />
+          <Actions onBack={back} primary={pending ? "One moment…" : "Continue"} disabled={pending || !duration || childIds.length === 0} onPrimary={continueToInstructors} />
         </section>
       )}
 
       {step === 2 && instructors && (
         <section className="space-y-5">
-          <Heading title="Who would you like to swim with?" sub="Everyone's CPR- and lifeguard-certified. Choose someone, or we'll match you." />
+          <Heading title="Who would you like to swim with?" sub="Every instructor is lifeguard- and CPR-certified. Pick one, or we'll match you." />
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             <button onClick={() => setInstructorId(null)} className="text-left">
               <div className={`card relative flex h-full flex-col justify-center gap-1 border-2 ${instructorId === null ? "border-brand-500" : "border-transparent"}`}>
                 <Picked on={instructorId === null} />
-                <p className="font-display text-lg font-semibold">Whoever&apos;s available</p>
-                <p className="text-sm text-stone-600">You&apos;ll see the most times. We pick the best fit for your kids and schedule.</p>
+                <p className="font-display text-lg font-semibold">Best match</p>
+                <p className="text-sm text-stone-600">Shows the most times. We&apos;ll pick the instructor who fits your kids and schedule.</p>
               </div>
             </button>
             {[...instructors]
@@ -457,14 +457,14 @@ export function BookingWizard(props: WizardProps) {
                 </button>
               ))}
           </div>
-          {instructors.length === 0 && <p className="card text-stone-600">We don&apos;t have an instructor for this combination of ages and levels yet. Give us a call and we&apos;ll sort it out.</p>}
+          {instructors.length === 0 && <p className="card text-stone-600">We don&apos;t have an instructor for this mix of ages and levels yet. Contact us and we&apos;ll sort it out.</p>}
           <Actions onBack={back} primary="Continue" disabled={instructors.length === 0} onPrimary={() => setStep(3)} />
         </section>
       )}
 
       {step === 3 && duration && zone && (
         <section className="space-y-5">
-          <Heading title="One lesson or a bundle?" sub="Packages save money, and once your instructor confirms you'll have their number." />
+          <Heading title="One lesson or a package?" sub="Packages cost less per lesson, and once your instructor confirms you'll get their phone number." />
           <div className="space-y-2">
             <PlanOption selected={plan.kind === "single"} onClick={() => setPlan({ kind: "single" })} title="Single lesson" quote={planQuotes.single} />
             {props.offerings.map((o) => (
@@ -506,7 +506,7 @@ export function BookingWizard(props: WizardProps) {
       {step === 4 && (
         <section className="space-y-5">
           <div className="flex items-end justify-between gap-3">
-            <Heading title={weeks ? "Pick your weekly time" : "When works for you?"} sub={weeks ? `Same time each week for ${weeks} weeks.` : "San Diego time."} />
+            <Heading title={weeks ? "Pick your weekly time" : "When works for you?"} sub={weeks ? `Same time each week for ${weeks} weeks.` : "Times are in San Diego time."} />
             <div className="flex shrink-0 gap-1.5">
               <button className="btn-secondary px-3" aria-label="Earlier week" disabled={weekStart <= addDays(props.today, 1) || slotsLoading} onClick={() => setWeekStart(addDays(weekStart, -7))}>
                 ←
@@ -558,7 +558,7 @@ export function BookingWizard(props: WizardProps) {
             />
           </div>
           {!slotsLoading && slots.length === 0 && (
-            <p className="text-sm text-stone-500">Nothing open this week{onlyPreferred ? " at those times" : ""}. Try the next week{instructorId ? " or “Whoever's available”" : ""}.</p>
+            <p className="text-sm text-stone-500">Nothing open this week{onlyPreferred ? " at those times" : ""}. Try the next week{instructorId ? " or “Best match”" : ""}.</p>
           )}
           <Actions onBack={back} primary={slot ? `Continue · ${whenShort.format(new Date(slot.start))}` : "Pick a time"} disabled={!slot} onPrimary={goToReview} />
         </section>
@@ -566,7 +566,7 @@ export function BookingWizard(props: WizardProps) {
 
       {step === 5 && slot && zone && duration && (
         <section className="space-y-5">
-          <Heading title="Ready to dive in?" sub="Check the details, then you're all set." />
+          <Heading title="Review and pay" sub="Check the details below before you pay." />
           <div className="grid gap-4 lg:grid-cols-5">
             <div className="card space-y-4 lg:col-span-3">
               <p className="font-display text-xl font-semibold">
@@ -586,7 +586,7 @@ export function BookingWizard(props: WizardProps) {
                 </li>
               </ul>
               <p className="rounded-xl bg-sand p-3 text-sm text-stone-600">
-                Your instructor confirms within {props.bookingRequestWindowHours} hours. Need to change plans? Cancel or reschedule free up to {props.cancellationWindowHours} hours before.
+                Your instructor confirms within {props.bookingRequestWindowHours} hours. You can cancel or reschedule at no charge up to {props.cancellationWindowHours} hours before; within {props.cancellationWindowHours} hours, the lesson isn&apos;t refunded.
               </p>
             </div>
 
@@ -686,7 +686,7 @@ function Heading({ title, sub }: { title: string; sub?: string }) {
   return (
     <div>
       <h2 className="text-2xl font-semibold sm:text-3xl">{title}</h2>
-      {sub && <p className="mt-1 text-stone-600">{sub}</p>}
+      {sub && <p className="measure mt-2 text-stone-600">{sub}</p>}
     </div>
   );
 }
@@ -697,11 +697,11 @@ function Actions({ onBack, primary, onPrimary, disabled, note }: { onBack?: () =
     <div className="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200/70 bg-sand/95 px-5 py-3 backdrop-blur lg:static lg:border-0 lg:bg-transparent lg:p-0 lg:pt-2">
       <div className="mx-auto flex max-w-3xl items-center gap-3 lg:max-w-none">
         {onBack && (
-          <button className="btn-secondary px-4" onClick={onBack} aria-label="Back">
+          <button className="btn-secondary btn-lg w-12 px-0" onClick={onBack} aria-label="Back">
             ←
           </button>
         )}
-        <button className="btn-primary flex-1 py-3 text-base lg:flex-none lg:px-8" disabled={disabled} onClick={onPrimary}>
+        <button className="btn-primary btn-lg flex-1 lg:flex-none" disabled={disabled} onClick={onPrimary}>
           {primary}
         </button>
         {note && <span className="hidden text-xs text-stone-400 sm:inline">{note}</span>}

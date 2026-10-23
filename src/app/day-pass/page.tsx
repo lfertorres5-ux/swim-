@@ -27,20 +27,18 @@ export default async function DayPassPage() {
         </Link>
       </header>
 
-      <section className="mx-auto max-w-3xl px-5 pt-6 pb-16">
-        <Photo photo={PHOTOS.club} tone="dusk" className="mb-8 aspect-[16/7] w-full rounded-[2rem]" sizes="(min-width: 768px) 720px, 95vw" priority />
+      <section className="mx-auto max-w-3xl px-5 pt-6 pb-16 lg:pb-24">
+        <Photo photo={PHOTOS.club} tone="dusk" className="mb-8 aspect-video w-full rounded-3xl" sizes="(min-width: 768px) 720px, 95vw" priority />
         <p className="text-sm font-semibold tracking-wide text-coral-600 uppercase">For our swim families</p>
-        <h1 className="mt-2 text-4xl leading-tight font-semibold sm:text-5xl">Partner Club Day Pass</h1>
-        <p className="mt-4 text-lg text-stone-600">
-          Spend a day at {clubName} — pools, lounge chairs and lunch by the water — with exclusive discounted access arranged for families who swim with us.
-        </p>
+        <h1 className="h-display mt-2">Partner Club Day Pass</h1>
+        <p className="measure mt-4 text-lg text-stone-600">Spend a day at {clubName}: pools, lounge chairs and lunch by the water, at a discounted rate for families who swim with us.</p>
         <ul className="mt-6 grid gap-3 text-sm sm:grid-cols-3">
           {[
-            ["Member-family pricing", "Discounted access for our families — pricing available on inquiry."],
-            ["Inquiry only", "Tell us your dates; we check availability with the club."],
-            ["Pay when it's confirmed", "We send a secure payment link once your day is approved."],
+            ["Member-family pricing", "A discounted rate for families who swim with us. We quote it when you ask."],
+            ["Inquiry only", "Tell us your dates and we'll check availability with the club."],
+            ["Pay once it's confirmed", "We send a secure payment link after the club approves your day."],
           ].map(([t, d]) => (
-            <li key={t} className="rounded-2xl bg-white/70 p-4">
+            <li key={t} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-200/70">
               <p className="font-semibold text-stone-900">{t}</p>
               <p className="mt-1 text-stone-600">{d}</p>
             </li>
@@ -49,7 +47,7 @@ export default async function DayPassPage() {
 
         <div className="mt-10">
           {s?.day_pass_enabled === false ? (
-            <p className="card text-stone-600">We&apos;re not taking day pass inquiries right now. Check back soon!</p>
+            <p className="card text-stone-600">We&apos;re not taking day pass inquiries right now. Please check back soon.</p>
           ) : (
             <InquiryForm
               clubName={clubName}

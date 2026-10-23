@@ -82,7 +82,7 @@ export function NoteForm({ bookingId, swimmers, initial }: { bookingId: string; 
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200/70 bg-sand/95 px-5 py-3 backdrop-blur">
         <button
-          className="btn-primary w-full py-3 text-base"
+          className="btn-primary btn-lg w-full"
           disabled={pending || !summary.trim()}
           onClick={() =>
             startTransition(async () => {

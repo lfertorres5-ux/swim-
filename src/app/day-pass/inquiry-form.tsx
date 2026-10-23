@@ -18,7 +18,7 @@ export function InquiryForm({ defaults, minDate, clubName }: { defaults: { name:
   if (state.ok) {
     return (
       <div className="card text-center">
-        <p className="font-display text-2xl font-semibold">Thanks — we&apos;ve got it!</p>
+        <p className="font-display text-2xl font-semibold">Thanks, we&apos;ve got it.</p>
         <p className="mt-2 text-stone-600">We&apos;ll check {clubName}&apos;s calendar and email you member-family pricing, usually within a day or two. Nothing is booked or charged until you say yes.</p>
       </div>
     );
@@ -54,7 +54,7 @@ export function InquiryForm({ defaults, minDate, clubName }: { defaults: { name:
           ))}
           {dates < 3 && (
             <button type="button" className="text-sm font-medium text-brand-700" onClick={() => setDates((d) => d + 1)}>
-              + another date
+              + Add another date
             </button>
           )}
         </div>
@@ -89,7 +89,7 @@ export function InquiryForm({ defaults, minDate, clubName }: { defaults: { name:
         <button className="btn-primary" disabled={pending}>
           {pending ? "Sending…" : "Send inquiry"}
         </button>
-        <span className="text-sm text-stone-500">No payment now. We&apos;ll reply with pricing.</span>
+        <span className="text-sm text-stone-500">No payment now. We&apos;ll reply with your price.</span>
         {state.error && (
           <p className="w-full text-sm text-red-700" role="alert">
             {state.error}

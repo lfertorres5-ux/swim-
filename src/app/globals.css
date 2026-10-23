@@ -103,19 +103,51 @@ body {
   h1,
   h2,
   h3 {
-    @apply font-display tracking-tight text-stone-900;
+    @apply font-display leading-[1.15] tracking-tight text-stone-900;
   }
 }
 
+/*
+ * Design system (public site)
+ *   Type scale  ~1.25 ratio: 12 · 14 · 16 · 20 · 24 · 30 · 36 · 48/60 (hero only)
+ *               .h-display hero h1 · .h-section every section h2 · .h-card every card h3
+ *               headings line-height 1.15; body 1.5; running text capped at 65ch (.measure)
+ *   Spacing     4/8 px scale (Tailwind 1–24). Sections: .section = 64px top/bottom, 96px on desktop
+ *   Radius      controls (buttons, chips) full · inputs 12px · small cards 16px · panels 24px
+ *   Controls    44px tall (.btn-*, .input) · 48px for the one large CTA per section (.btn-lg)
+ *   Media       4:5 feature photo · 1:1 insets and avatars · 16:9 banners, all object-cover
+ */
 @layer components {
+  .section {
+    @apply py-16 lg:py-24;
+  }
+  .h-display {
+    @apply text-4xl leading-[1.1] font-semibold sm:text-6xl;
+  }
+  .h-section {
+    @apply text-3xl font-semibold sm:text-4xl;
+  }
+  .h-card {
+    @apply text-xl font-semibold;
+  }
+  .measure {
+    max-width: 65ch;
+  }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-full bg-brand-600 px-5 text-sm font-semibold whitespace-nowrap text-white transition hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-stone-300 bg-white px-5 py-2.5 text-sm font-semibold text-stone-800 transition hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:opacity-50;
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-full border border-stone-300 bg-white px-5 text-sm font-semibold whitespace-nowrap text-stone-800 transition hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:opacity-50;
+  }
+  /* White button on dark panels. */
+  .btn-light {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-semibold whitespace-nowrap text-brand-800 transition hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white;
+  }
+  .btn-lg {
+    @apply h-12 px-7 text-base;
   }
   .input {
-    @apply w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-base placeholder:text-stone-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none sm:text-sm;
+    @apply min-h-11 w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-base placeholder:text-stone-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none sm:text-sm;
   }
   .card {
     @apply rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(60,40,20,0.06),0_4px_16px_rgba(60,40,20,0.04)];

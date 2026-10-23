@@ -7,7 +7,7 @@ const heading = Fraunces({ variable: "--font-heading", subsets: ["latin"], axes:
 const body = Figtree({ variable: "--font-body", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: `${brand.name} — Private In-Home Swim Lessons in San Diego`, template: `%s · ${brand.name}` },
+  title: { default: `${brand.name} · Private swim lessons at your pool in San Diego`, template: `%s · ${brand.name}` },
   description: brand.tagline,
 };
 

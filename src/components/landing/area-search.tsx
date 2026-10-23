@@ -68,20 +68,20 @@ export function AreaSearch({ zones }: { zones: Zone[] }) {
         {result?.kind === "yes" && (
           <div key={result.place} className="animate-step-in rounded-2xl bg-brand-700 p-5 text-white">
             <p className="text-sm text-brand-200">Good news</p>
-            <p className="mt-0.5 font-display text-2xl font-semibold text-white">We come to {result.place}!</p>
+            <p className="mt-0.5 font-display text-2xl font-semibold text-white">We come to {result.place}.</p>
             <p className="mt-2 text-sm text-brand-100">
               {result.zone.name} · {result.zone.travelFeeCents ? `${money(result.zone.travelFeeCents)} travel fee per lesson` : "no travel fee"}
               {result.zone.minBookingMinutes ? ` · lessons from ${result.zone.minBookingMinutes} min` : ""}
             </p>
-            <Link href="/book" className="mt-4 inline-flex rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-brand-50">
-              Find a time →
+            <Link href="/book" className="btn-light mt-4">
+              Book a lesson
             </Link>
           </div>
         )}
         {result?.kind === "maybe" && (
           <div className="animate-step-in rounded-2xl bg-white p-5 ring-1 ring-stone-200">
-            <p className="font-semibold text-stone-900">We might — let&apos;s check your address.</p>
-            <p className="mt-1 text-sm text-stone-600">That&apos;s in San Diego County but not on our list yet. Start a booking and we&apos;ll check your exact address, or get in touch below.</p>
+            <p className="font-semibold text-stone-900">We might. Let&apos;s check your address.</p>
+            <p className="mt-1 text-sm text-stone-600">That&apos;s in San Diego County but not on our list yet. Start a booking and we&apos;ll check your exact address, or contact us below.</p>
             <Link href="/book" className="mt-3 inline-block text-sm font-semibold text-brand-700">
               Check my address →
             </Link>
@@ -90,7 +90,7 @@ export function AreaSearch({ zones }: { zones: Zone[] }) {
         {result?.kind === "no" && (
           <div className="animate-step-in rounded-2xl bg-white p-5 ring-1 ring-stone-200">
             <p className="font-semibold text-stone-900">Sorry, we only teach in San Diego County.</p>
-            <p className="mt-1 text-sm text-stone-600">Double-check the ZIP — ours start with 919, 920 or 921.</p>
+            <p className="mt-1 text-sm text-stone-600">Double-check the ZIP. Ours start with 919, 920 or 921.</p>
           </div>
         )}
         {!result && <p className="pt-2 text-sm text-stone-500">Or tap a neighborhood below.</p>}

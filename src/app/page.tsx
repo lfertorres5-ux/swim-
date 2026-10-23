@@ -29,13 +29,15 @@ export default async function Home() {
   const included = pricing?.included_children ?? 2;
 
   const cancelHours = settings?.cancellation_window_hours ?? 24;
+  // Two-column grid: show an even number so there's never a lone card in the last row.
+  const shownInstructors = instructors.slice(0, instructors.length > 1 ? Math.min(4, instructors.length - (instructors.length % 2)) : 1);
   const faqs: [string, string][] = [
-    ["What do I need?", "A pool — yours, a neighbor's or your HOA's — ideally with steps or a shallow area so little swimmers can stand and get in safely, and warm water (around 82–86°F for young kids). We bring the kickboards and everything else."],
-    ["We don't have a pool. Can we still take lessons?", "In certain cases, yes: we can teach at one of our partner country club pools. Get in touch and we'll let you know what's possible for your family and schedule."],
+    ["What do I need?", "A pool (yours, a neighbor's or your HOA's), ideally with steps or a shallow area so little swimmers can stand and get in safely, and warm water (around 82–86°F for young kids). We bring the kickboards and everything else."],
+    ["We don't have a pool. Can we still take lessons?", "In some cases, yes: we can teach at one of our partner country club pools. Get in touch and we'll tell you what's possible for your family and schedule."],
     ["How young can my child start?", "Some of our instructors teach babies from 6 months, with a parent in the water."],
-    ["Can siblings share a lesson?", `Yes — up to ${included} kids are included, and each extra swimmer is ${extra}.`],
-    ["Do packages renew automatically?", "Only if you choose to. When you buy a package you can tick “auto-renew”: once you've booked its last lesson, we renew the same package at the regular price, charged to the same card after that lesson. We email you at least 3 days before every renewal, and you can turn it off any time from your account."],
-    ["What if we need to cancel?", `You can cancel or reschedule from your account up to ${cancelHours} hours before your lesson at no charge. Within ${cancelHours} hours, the lesson isn't refunded — but please still let us know as soon as you can so your instructor isn't left waiting. If the weather turns, your instructor will reach out.`],
+    ["Can siblings share a lesson?", `Yes. Each lesson includes up to ${included} kids, and each extra swimmer is ${extra}.`],
+    ["Do packages renew automatically?", "Only if you choose to. When you buy a package you can tick “Auto-renew this package”: once you've booked its last lesson, we renew the same package at the regular price, charged to the same card after that lesson. We email you at least 3 days before every renewal, and you can turn it off any time from your account."],
+    ["What if we need to cancel?", `You can cancel or reschedule from your account up to ${cancelHours} hours before your lesson at no charge. Within ${cancelHours} hours, the lesson isn't refunded, but please still let us know as soon as you can so your instructor isn't left waiting. If the weather turns, your instructor will reach out.`],
     ["How do I pay?", hsaFsa ? "Online when you book, by card or with your HSA/FSA card through Truemed. You'll get a receipt for every lesson." : "Online when you book. You'll get a receipt for every lesson."],
     ...(hsaFsa
       ? ([["Can I use my HSA or FSA?", "Possibly. Swim lessons may qualify for HSA/FSA funds when they're recommended for a health reason. At checkout, choose “HSA / FSA card”: Truemed asks a few quick health questions, and if a licensed provider approves, you pay with your HSA/FSA card. If not, you can pay by card instead."]] as [string, string][])
@@ -53,6 +55,9 @@ export default async function Home() {
           <a href="#contact" className="hidden text-stone-600 hover:text-stone-900 sm:inline">
             Contact
           </a>
+          <Link href="/book" className="btn-primary hidden sm:inline-flex">
+            Book a lesson
+          </Link>
           <Link href="/login" className="text-stone-600 hover:text-stone-900">
             Sign in
           </Link>
@@ -60,9 +65,9 @@ export default async function Home() {
       </header>
 
       {/* Hero */}
-      <section className="mx-auto grid w-full max-w-6xl gap-12 px-5 pt-4 pb-14 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:pt-12 lg:pb-20">
-        <div>
-          <h1 className="text-4xl leading-[1.05] font-semibold sm:text-6xl">
+      <section className="mx-auto grid w-full max-w-6xl gap-12 px-5 pt-4 pb-16 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:pt-12 lg:pb-24">
+        <div className="min-w-0">
+          <h1 className="h-display">
             Swim lessons in{" "}
             <span className="relative whitespace-nowrap">
               your own backyard.
@@ -71,18 +76,18 @@ export default async function Home() {
               </svg>
             </span>
           </h1>
-          <p className="mt-6 max-w-xl text-lg text-stone-600">
-            Friendly, certified instructors who come to your pool — from Encinitas and Del Mar to Carlsbad and La Jolla. Babies to swim team, and the nervous ones too.
+          <p className="measure mt-6 text-lg text-stone-600">
+            Private lessons at your pool with former Division I and national-level swimmers, from Encinitas and Del Mar to Carlsbad and La Jolla. Babies to swim team, nervous swimmers included.
           </p>
-          <div className="mt-7 max-w-md">
+          <div className="mt-8 max-w-md">
             <ZipChecker
               zones={(zones ?? []).map((z) => ({ code: z.code, name: z.name, travelFeeCents: z.travel_fee_cents, minBookingMinutes: z.min_booking_minutes, postalCodes: z.postal_codes }))}
             />
           </div>
           <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-stone-600">
-            <li>✓ CPR & lifeguard certified</li>
-            <li>✓ Free to reschedule {cancelHours}h ahead</li>
-            <li>✓ Progress notes after every lesson</li>
+            <li>✓ Lifeguard and CPR certified</li>
+            <li>✓ Background checked</li>
+            <li>✓ Notes after every lesson</li>
           </ul>
         </div>
 
@@ -102,17 +107,17 @@ export default async function Home() {
       {/* Why us — three lanes */}
       <section className="bg-white">
         <TileBand />
-        <div className="mx-auto max-w-6xl px-5 py-14">
+        <div className="section mx-auto max-w-6xl px-5">
           <div className="grid gap-px overflow-hidden rounded-3xl bg-stone-200 sm:grid-cols-3">
             {[
-              ["Certified & insured", "Every instructor is CPR- and lifeguard-certified, background-checked and covered by our insurance."],
-              ["At your pool", "No crowded public pools or driving across town. Kids learn best where they actually swim."],
-              ["You'll see the progress", "After every lesson your instructor sends a short note on what your kids worked on."],
+              ["Certified and insured", "Every instructor is lifeguard- and CPR-certified, background-checked and covered by our insurance."],
+              ["At your pool", "No crowded public pools, no driving across town. Kids learn best in the pool they actually swim in."],
+              ["A note after every lesson", "Your instructor sends a short note on what your kids worked on and what comes next."],
             ].map(([title, text], i) => (
               <div key={title} className="relative bg-white p-6 pt-10">
                 <span className="absolute top-4 left-6 font-display text-sm font-semibold text-brand-500">Lane {i + 1}</span>
                 <span aria-hidden className="absolute top-0 right-6 bottom-0 w-1.5 bg-[repeating-linear-gradient(to_bottom,var(--color-lane-blue)_0_10px,#fff_10px_20px)] opacity-60" />
-                <h3 className="pr-8 text-xl font-semibold">{title}</h3>
+                <h3 className="h-card pr-8">{title}</h3>
                 <p className="mt-2 pr-8 text-stone-600">{text}</p>
               </div>
             ))}
@@ -122,25 +127,23 @@ export default async function Home() {
       <WaveEdge fill="var(--color-sand)" className="-mt-px bg-white" />
 
       {/* How we're different */}
-      <section id="different" className="mx-auto w-full max-w-6xl px-5 pt-16">
-        <div className="relative overflow-hidden rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-stone-200/70 sm:p-10">
+      <section id="different" className="mx-auto w-full max-w-6xl px-5 pt-16 lg:pt-24">
+        <div className="relative overflow-hidden rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-200/70 sm:p-12">
           <span aria-hidden className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-brand-50" />
           <div className="relative">
-            <h2 className="max-w-2xl text-3xl font-semibold sm:text-4xl">San Diego&apos;s best swimmers, in your backyard.</h2>
-            <p className="mt-3 max-w-2xl text-stone-600">
-              We&apos;re local swimmers who care about one thing: giving every family access to swimming taught by the very best instructors.
-            </p>
+            <h2 className="h-section max-w-2xl">San Diego&apos;s best swimmers, in your backyard.</h2>
+            <p className="measure mt-4 text-stone-600">We&apos;re local swimmers with one goal: every family taught by the best instructors in the water.</p>
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 ["Local swimmers", "We swim here too. This is our community's pools, beaches and kids, not a territory on a map."],
                 ["Small on purpose", "Staying local lets us be choosy. We only bring on the most capable instructors, not whoever's available."],
                 ["Partners, not employees", "Our instructors are partners in the business. They choose to teach here and own the results with you."],
-                ["Quality, every lesson", "Every lesson ends with a progress note, and every instructor's certifications are tracked and kept current."],
+                ["Checked every lesson", "Every lesson ends with a progress note, and every instructor's certifications are tracked and kept current."],
               ].map(([title, text], i) => (
                 <div key={title}>
                   <span className="font-display text-3xl font-semibold text-coral-500">0{i + 1}</span>
-                  <h3 className="mt-2 text-lg font-semibold">{title}</h3>
-                  <p className="mt-1 text-sm text-stone-600">{text}</p>
+                  <h3 className="h-card mt-2">{title}</h3>
+                  <p className="mt-2 text-sm text-stone-600">{text}</p>
                 </div>
               ))}
             </div>
@@ -149,13 +152,13 @@ export default async function Home() {
       </section>
 
       {/* Vetting */}
-      <section id="vetting" className="mx-auto w-full max-w-6xl px-5 py-16">
+      <section id="vetting" className="section mx-auto w-full max-w-6xl px-5">
         <div className="grid gap-10 lg:grid-cols-[1fr_1.4fr] lg:items-start">
           <div className="lg:sticky lg:top-8">
-            <h2 className="text-3xl font-semibold sm:text-4xl">Who&apos;s in the water with your kids</h2>
-            <p className="mt-3 text-stone-600">
-              Every instructor is a former <strong className="text-stone-900">NCAA Division I and/or national-level competitive swimmer</strong>. Speed in the pool is only the start. Before anyone
-              teaches a lesson, they pass every step below.
+            <h2 className="h-section">Who&apos;s in the water with your kids</h2>
+            <p className="measure mt-4 text-stone-600">
+              Every instructor is a former <strong className="text-stone-900">NCAA Division I or national-level competitive swimmer</strong>. Speed is only the start: before teaching a single
+              lesson, each one passes the seven steps below.
             </p>
             <div className="mt-6 flex items-center gap-4 rounded-3xl bg-brand-800 p-5 text-white">
               <span className="font-display text-5xl leading-none font-semibold text-coral-400">D1</span>
@@ -167,8 +170,8 @@ export default async function Home() {
           <ol className="relative space-y-3">
             <span aria-hidden className="absolute top-4 bottom-4 left-[19px] w-[3px] rounded-full bg-[repeating-linear-gradient(to_bottom,var(--color-lane-blue)_0_8px,#fff_8px_14px)] ring-1 ring-stone-200" />
             {[
-              ["Elite competitive background", "NCAA Division I and/or national-level meet experience, confirmed against published results and rosters."],
-              ["Lifeguard + CPR/AED + First Aid", "Current American Red Cross (or equivalent) lifeguarding and CPR/AED/First Aid certification, kept on file and tracked to expiry."],
+              ["Competitive record", "NCAA Division I or national-level meet experience, confirmed against published results and rosters."],
+              ["Lifeguard, CPR/AED and First Aid", "Current American Red Cross (or equivalent) lifeguarding and CPR/AED/First Aid certification, kept on file and tracked to expiry."],
               ["Certified swim instructor", "Water Safety Instructor (WSI) or an equivalent learn-to-swim teaching certification."],
               ["Background check", "A national criminal background check and sex-offender registry search before activation."],
               ["In-water audition", "A live teaching session with a real student, reviewed by the owner: patience, safety habits and how they handle a nervous swimmer."],
@@ -188,12 +191,12 @@ export default async function Home() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="mx-auto w-full max-w-6xl px-5 py-16">
+      <section id="pricing" className="section mx-auto w-full max-w-6xl px-5">
         <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-start">
           <div>
-            <h2 className="text-3xl font-semibold sm:text-4xl">Simple, honest pricing</h2>
-            <p className="mt-3 text-stone-600">
-              Each lesson covers up to {included} kids. Extra swimmers are {extra} each. No membership, no sign-up fee.
+            <h2 className="h-section">Pay per lesson</h2>
+            <p className="measure mt-4 text-stone-600">
+              Each lesson covers up to {included} kids, and each extra swimmer is {extra}. No membership, no sign-up fee.
             </p>
             <div className="mt-6 grid grid-cols-3 gap-3">
               {(prices ?? []).map((p) => (
@@ -204,15 +207,15 @@ export default async function Home() {
                 </div>
               ))}
             </div>
-            <Link href="/book" className="btn-primary mt-8 px-7 py-3 text-base">
-              Find a time
+            <Link href="/book" className="btn-primary btn-lg mt-8">
+              Book a lesson
             </Link>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-3xl bg-brand-800 p-6 text-brand-50">
-              <p className="text-xs font-semibold tracking-wide text-brand-200 uppercase">Swim pass</p>
-              <h3 className="mt-1 text-xl font-semibold text-white">Save with a package</h3>
+              <p className="text-xs font-semibold tracking-wide text-brand-200 uppercase">Packages</p>
+              <h3 className="h-card mt-1 text-white">Save with a package</h3>
               <ul className="mt-4 space-y-2">
                 {(offerings ?? []).map((o) => (
                   <li key={o.name} className="flex items-center justify-between border-b border-dashed border-brand-600 pb-2">
@@ -223,7 +226,7 @@ export default async function Home() {
               </ul>
             </div>
             <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-200/70">
-              <h3 className="text-xl font-semibold">Good to know</h3>
+              <h3 className="h-card">Travel fees and savings</h3>
               <ul className="mt-4 space-y-2.5 text-sm text-stone-600">
                 {(zones ?? []).map((z) => (
                   <li key={z.code}>
@@ -243,16 +246,16 @@ export default async function Home() {
         <LaneRope count={36} />
       </div>
 
-      {instructors.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-5 py-16">
+      {shownInstructors.length > 0 && (
+        <section className="section mx-auto w-full max-w-6xl px-5">
           <div className="grid gap-8 lg:grid-cols-[280px_1fr] lg:items-start">
             <div>
-              <h2 className="text-3xl font-semibold sm:text-4xl">Meet the instructors</h2>
-              <p className="mt-3 text-stone-600">Pick a favorite when you book, or let us match you with whoever fits your kids and schedule.</p>
+              <h2 className="h-section">Meet the instructors</h2>
+              <p className="measure mt-4 text-stone-600">Pick a favorite when you book, or we&apos;ll match you with the instructor who fits your kids and schedule.</p>
               <Photo photo={PHOTOS.toddler} className="pool-shape mt-6 hidden aspect-square w-full lg:block" sizes="280px" />
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {instructors.slice(0, 4).map((i) => (
+            <div className={`grid gap-4 ${shownInstructors.length > 1 ? "md:grid-cols-2" : ""}`}>
+              {shownInstructors.map((i) => (
                 <InstructorCard key={i.id} instructor={i} />
               ))}
             </div>
@@ -262,10 +265,10 @@ export default async function Home() {
 
       <WaveEdge fill="#ffffff" />
       <section className="bg-white">
-        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 lg:grid-cols-[1fr_1.3fr]">
+        <div className="section mx-auto grid max-w-6xl gap-10 px-5 lg:grid-cols-[1fr_1.3fr]">
           <div>
-            <h2 className="text-3xl font-semibold sm:text-4xl">Where we teach</h2>
-            <p className="mt-3 text-stone-600">Coastal North County and greater San Diego. Type your ZIP code or neighborhood to see if we come to you, and what it costs.</p>
+            <h2 className="h-section">Where we teach</h2>
+            <p className="measure mt-4 text-stone-600">Coastal North County and greater San Diego. Enter your ZIP code or neighborhood to see if we come to you and what it costs.</p>
           </div>
           <AreaSearch
             zones={(zones ?? []).map((z) => ({ code: z.code, name: z.name, travelFeeCents: z.travel_fee_cents, minBookingMinutes: z.min_booking_minutes, postalCodes: z.postal_codes, neighborhoods: z.neighborhoods, color: z.map_color }))}
@@ -275,9 +278,9 @@ export default async function Home() {
       <WaveEdge fill="var(--color-sand)" className="-mt-px bg-white" />
 
       {/* What you need */}
-      <section id="pool" className="mx-auto w-full max-w-6xl px-5 pt-16">
-        <h2 className="text-3xl font-semibold sm:text-4xl">What you need</h2>
-        <p className="mt-3 max-w-2xl text-stone-600">Lessons happen at your pool, so here&apos;s the short checklist. Your instructor brings everything else.</p>
+      <section id="pool" className="mx-auto w-full max-w-6xl px-5 pt-16 lg:pt-24">
+        <h2 className="h-section">What you need</h2>
+        <p className="measure mt-4 text-stone-600">Lessons happen at your pool, so here&apos;s the short checklist. Your instructor brings everything else.</p>
         <div className="mt-8 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
           <ul className="grid gap-3 sm:grid-cols-2">
             {[
@@ -300,19 +303,19 @@ export default async function Home() {
           <div id="no-pool" className="relative flex scroll-mt-24 flex-col justify-between overflow-hidden rounded-3xl bg-brand-800 p-6 text-white">
             <TileBand className="absolute inset-x-0 top-0 opacity-80" />
             <div className="pt-6">
-              <h3 className="text-2xl font-semibold text-white">No pool? We may still have you covered.</h3>
-              <p className="mt-2 text-brand-100">In certain cases, we can teach at one of our partner country club pools. Tell us a bit about your family and schedule, and we&apos;ll let you know what&apos;s possible.</p>
+              <h3 className="h-card text-white">No pool? We may still have you covered.</h3>
+              <p className="mt-2 text-brand-100">In some cases we can teach at one of our partner country club pools. Tell us about your family and schedule, and we&apos;ll tell you what&apos;s possible.</p>
             </div>
-            <a href="#contact" className="mt-6 inline-flex w-fit items-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-brand-50">
-              Ask about club lessons →
+            <a href="#contact" className="btn-light mt-6 w-fit">
+              Ask about club lessons
             </a>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-3xl px-5 py-16">
-        <h2 className="text-3xl font-semibold sm:text-4xl">Questions</h2>
-        <div className="mt-6 space-y-3">
+      <section className="section mx-auto w-full max-w-3xl px-5">
+        <h2 className="h-section">Common questions</h2>
+        <div className="mt-8 space-y-3">
           {faqs.map(([q, a]) => (
             <details key={q} className="group rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-stone-200/70 open:ring-brand-200">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-stone-900">
@@ -321,20 +324,20 @@ export default async function Home() {
                   +
                 </span>
               </summary>
-              <p className="mt-2 text-stone-600">{a}</p>
+              <p className="measure mt-2 text-stone-600">{a}</p>
             </details>
           ))}
         </div>
       </section>
 
-      <section id="contact" className="mx-auto w-full max-w-6xl px-5 pb-16">
-        <div className="relative overflow-hidden rounded-[2rem] bg-brand-700 px-6 py-10 text-white sm:px-10">
+      <section id="contact" className="mx-auto w-full max-w-6xl px-5 pb-16 lg:pb-24">
+        <div className="relative overflow-hidden rounded-3xl bg-brand-700 px-6 py-12 text-white sm:px-12">
           <span aria-hidden className="absolute -right-16 -bottom-16 h-56 w-56 rounded-full bg-brand-500/40" />
           <span aria-hidden className="absolute -top-10 right-24 h-24 w-24 rounded-full bg-coral-500/80" />
           <div className="relative grid gap-8 md:grid-cols-[1.3fr_1fr] md:items-center">
             <div>
-              <h2 className="text-3xl font-semibold text-white sm:text-4xl">Still have questions?</h2>
-              <p className="mt-3 max-w-lg text-brand-100">Talk to a real person about ages, levels, pool temperature or anything else. We&apos;re happy to help you pick the right fit.</p>
+              <h2 className="h-section text-white">Contact us</h2>
+              <p className="measure mt-4 text-brand-100">Talk to a real person about ages, levels, pool temperature or anything else before you book.</p>
             </div>
             <div className="space-y-3">
               {contact.phone && (
@@ -355,8 +358,8 @@ export default async function Home() {
                   </span>
                 </a>
               )}
-              {!contact.phone && !contact.email && <p className="rounded-2xl bg-white/10 px-5 py-4 text-brand-100">Phone and email coming soon. In the meantime, you can book online anytime.</p>}
-              <Link href="/book" className="inline-flex w-full items-center justify-center rounded-full bg-white px-6 py-3 font-semibold text-brand-800 transition hover:bg-brand-50">
+              {!contact.phone && !contact.email && <p className="rounded-2xl bg-white/10 px-5 py-4 text-brand-100">Phone and email coming soon. You can book online anytime.</p>}
+              <Link href="/book" className="btn-light btn-lg w-full">
                 Book a lesson
               </Link>
             </div>

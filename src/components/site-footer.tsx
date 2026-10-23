@@ -10,13 +10,13 @@ export async function SiteFooter() {
   return (
     <footer className="mt-auto bg-brand-950 text-brand-100">
       <TileBand className="opacity-90" />
-      <div className="mx-auto grid max-w-6xl gap-8 px-5 py-12 sm:grid-cols-3">
+      <div className="mx-auto grid max-w-6xl gap-8 px-5 py-16 sm:grid-cols-3">
         <div>
           <p className="font-display text-xl font-semibold text-white">{brand.name}</p>
-          <p className="mt-2 text-sm text-brand-200">{brand.tagline}</p>
+          <p className="measure mt-2 text-sm text-brand-200">{brand.tagline}</p>
         </div>
         <div className="text-sm">
-          <p className="font-semibold text-white">Get in touch</p>
+          <p className="font-semibold text-white">Contact</p>
           <ul className="mt-2 space-y-1.5">
             {contact.phone && (
               <li>
@@ -37,7 +37,7 @@ export async function SiteFooter() {
           </ul>
         </div>
         <div className="text-sm">
-          <p className="font-semibold text-white">Around the pool</p>
+          <p className="font-semibold text-white">Explore</p>
           <ul className="mt-2 space-y-1.5">
             <li>
               <Link href="/book" className="hover:text-white">

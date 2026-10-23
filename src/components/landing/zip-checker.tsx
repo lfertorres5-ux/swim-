@@ -23,18 +23,18 @@ export function ZipChecker({ zones }: { zones: Zone[] }) {
           onChange={(e) => setZip(e.target.value.replace(/\D/g, ""))}
           className="min-w-0 flex-1 rounded-full bg-transparent px-4 text-base outline-none"
         />
-        <Link href="/book" className="btn-primary px-5">
-          Find a time
+        <Link href="/book" className="btn-primary">
+          Book a lesson
         </Link>
       </div>
       <p className="mt-3 min-h-6 px-2 text-sm" aria-live="polite">
         {zip.length === 5 &&
           (z ? (
             <span className="text-brand-800">
-              Yes, we come to you! {z.travelFeeCents ? `($${z.travelFeeCents / 100} travel fee)` : "No travel fee."}
+              Yes, we come to you. {z.travelFeeCents ? `$${z.travelFeeCents / 100} travel fee per lesson.` : "No travel fee."}
             </span>
           ) : inCounty ? (
-            <span className="text-stone-600">We might — enter your address when booking and we&apos;ll check.</span>
+            <span className="text-stone-600">We might. Enter your address when you book and we&apos;ll check.</span>
           ) : (
             <span className="text-stone-600">Sorry, we only teach in San Diego County.</span>
           ))}
