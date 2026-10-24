@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
-import { requireRole } from "@/lib/auth";
+import { brand } from "@/config/brand";
+import { getCurrentUser, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { hsaFsaAvailable } from "@/lib/booking/checkout";
 import { laDateString } from "@/lib/time";
@@ -10,8 +12,11 @@ import { BookingWizard } from "./booking-wizard";
 export const metadata: Metadata = { title: "Book a lesson" };
 
 export default async function BookPage({ searchParams }: PageProps<"/book">) {
-  const user = await requireRole("parent", "/book");
-  if (!user.onboardedAt) redirect("/onboarding?next=/book");
+  // Families can book without an account; it's created at checkout. Staff
+  // accounts are sent where they belong.
+  const signedIn = await getCurrentUser();
+  const user = signedIn ? await requireRole("parent", "/book") : null;
+  if (user && !user.onboardedAt) redirect("/onboarding?next=/book");
   const { instructor } = await searchParams;
   const supabase = await createClient();
 
@@ -20,15 +25,28 @@ export default async function BookPage({ searchParams }: PageProps<"/book">) {
     supabase.from("package_offerings").select("id, name, lesson_count, discount_pct").eq("is_active", true).order("sort_order"),
     supabase.from("pricing_config").select("*").single(),
     supabase.from("platform_settings").select("cancellation_window_hours, booking_request_window_hours, recurring_term_weeks").single(),
-    supabase.from("children").select("id, first_name, birth_date, swim_level").eq("is_active", true).order("first_name"),
-    supabase.from("parents").select("address_line1, address_line2, city, postal_code, access_notes, favorite_instructor_id, preferred_days, preferred_time_windows").eq("id", user.id).single(),
-    supabase.from("packages").select("id, lessons_remaining, duration_minutes, children_count, zone_id, expires_at").eq("status", "active").gt("lessons_remaining", 0),
+    user ? supabase.from("children").select("id, first_name, birth_date, swim_level").eq("is_active", true).order("first_name") : { data: null },
+    user
+      ? supabase.from("parents").select("address_line1, address_line2, city, postal_code, access_notes, favorite_instructor_id, preferred_days, preferred_time_windows").eq("id", user.id).single()
+      : { data: null },
+    user ? supabase.from("packages").select("id, lessons_remaining, duration_minutes, children_count, zone_id, expires_at").eq("status", "active").gt("lessons_remaining", 0) : { data: null },
   ]);
 
   const today = laDateString();
   return (
     <>
-      <AppHeader user={user} nav={[{ href: "/parent", label: "My lessons" }, { href: "/book", label: "Book" }]} />
+      {user ? (
+        <AppHeader user={user} nav={[{ href: "/parent", label: "My lessons" }, { href: "/book", label: "Book" }]} />
+      ) : (
+        <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4">
+          <Link href="/" className="font-display text-lg font-semibold text-brand-800">
+            {brand.name}
+          </Link>
+          <Link href="/login?next=/book" className="text-sm text-stone-600 hover:text-stone-900">
+            Sign in
+          </Link>
+        </header>
+      )}
       <main className="w-full flex-1 px-6 py-8">
         <BookingWizard
           prices={(prices ?? []).map((p) => ({ durationMinutes: p.duration_minutes, priceCents: p.price_cents }))}
@@ -55,6 +73,7 @@ export default async function BookPage({ searchParams }: PageProps<"/book">) {
           today={today}
           initialInstructorId={typeof instructor === "string" ? instructor : null}
           hsaFsaAvailable={await hsaFsaAvailable()}
+          guest={!user}
         />
       </main>
     </>

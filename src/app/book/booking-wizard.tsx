@@ -6,7 +6,7 @@ import { InstructorCard } from "@/components/instructor-card";
 import type { InstructorCardData } from "@/lib/instructor-cards";
 import type { Quote } from "@/lib/pricing/quote";
 import { AddressAutocomplete } from "./address-autocomplete";
-import { addChildAction, checkAddressAction, checkoutAction, eligibleInstructorsAction, quoteAction, slotsAction, type SlotView } from "./actions";
+import { addChildAction, checkAddressAction, checkoutAction, eligibleInstructorsAction, guestCheckoutAction, quoteAction, slotsAction, type SlotView } from "./actions";
 import { WeekCalendar } from "./week-calendar";
 import { LaneProgress, PassChips, Picked, SwimPass, type PassItem } from "./wizard-chrome";
 
@@ -30,9 +30,11 @@ export type WizardProps = {
   initialInstructorId: string | null;
   /** HSA/FSA checkout through Truemed is switched on. */
   hsaFsaAvailable: boolean;
+  /** Not signed in: swimmers stay in the browser and the account is created at checkout. */
+  guest: boolean;
 };
 
-type Child = { id: string; firstName: string; birthDate: string | null; swimLevel: string };
+type Child = { id: string; firstName: string; birthDate: string | null; swimLevel: string; notes?: string };
 type Zone = { id: string; code: string; name: string; travelFeeCents: number; minBookingMinutes: number };
 type Plan = { kind: "single" } | { kind: "package"; offeringId: string } | { kind: "recurring"; weeks: number } | { kind: "package_credit"; packageId: string };
 
@@ -112,6 +114,17 @@ export function BookingWizard(props: WizardProps) {
   // Package auto-renew is opt-in: never pre-ticked.
   const [autoRenew, setAutoRenew] = useState(false);
   const [quote, setQuote] = useState<(Quote & { promoMessage?: string }) | null>(null);
+  // Guests: who's booking (becomes their account at checkout).
+  const [contact, setContact] = useState({ firstName: "", lastName: "", email: "", phone: "", smsOptIn: false });
+  const [signInSentTo, setSignInSentTo] = useState<string | null>(null);
+  const contactReady = !props.guest || (contact.firstName.trim() && contact.lastName.trim() && /^\S+@\S+\.\S+$/.test(contact.email.trim()));
+
+  // Guests' swimmers aren't saved yet, so searches send age and level instead of ids.
+  const selectedKids = useMemo(() => children.filter((c) => childIds.includes(c.id)), [children, childIds]);
+  const who = useMemo(
+    () => (props.guest ? { swimmers: selectedKids.map((c) => ({ birthDate: c.birthDate ?? "", swimLevel: c.swimLevel })) } : { childIds }),
+    [props.guest, selectedKids, childIds],
+  );
 
   const weeks = plan.kind === "recurring" ? plan.weeks : null;
   const usableCredits = useMemo(
@@ -139,6 +152,16 @@ export function BookingWizard(props: WizardProps) {
   // --- Step 2 -------------------------------------------------------------
   function addChild() {
     setError(null);
+    if (props.guest) {
+      if (!newChild.firstName.trim()) return setError("First name is required");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(newChild.birthDate) || newChild.birthDate > props.today) return setError("Check the birth date");
+      const kid: Child = { id: `guest-${crypto.randomUUID()}`, firstName: newChild.firstName.trim(), birthDate: newChild.birthDate, swimLevel: newChild.swimLevel, notes: newChild.notes.trim() || undefined };
+      setChildren((c) => [...c, kid]);
+      setChildIds((ids) => [...ids, kid.id]);
+      setNewChild({ firstName: "", birthDate: "", swimLevel: "beginner", notes: "" });
+      setShowAddChild(false);
+      return;
+    }
     startTransition(async () => {
       const r = await addChildAction(newChild);
       if (!r.ok) return setError(r.error);
@@ -153,7 +176,7 @@ export function BookingWizard(props: WizardProps) {
     if (!zone || !duration || childIds.length === 0) return;
     setError(null);
     startTransition(async () => {
-      const r = await eligibleInstructorsAction({ zoneId: zone.id, durationMinutes: duration, childIds });
+      const r = await eligibleInstructorsAction({ zoneId: zone.id, durationMinutes: duration, ...who });
       if (!r.ok) return setError(r.error);
       setInstructors(r.data);
       if (instructorId && !r.data.some((i) => i.id === instructorId)) setInstructorId(null);
@@ -181,7 +204,7 @@ export function BookingWizard(props: WizardProps) {
         ? {
             zoneId: zone.id,
             durationMinutes: duration,
-            childIds,
+            ...who,
             instructorId,
             fromDate: weekStart,
             days: 7,
@@ -193,7 +216,7 @@ export function BookingWizard(props: WizardProps) {
             onlyPreferred,
           }
         : null,
-    [step, zone, duration, childIds, instructorId, weekStart, weeks, prefDays, prefWindows, onlyPreferred],
+    [step, zone, duration, who, instructorId, weekStart, weeks, prefDays, prefWindows, onlyPreferred],
   );
   const slotsKey = slotsRequest ? JSON.stringify(slotsRequest) : null;
   const [loadedSlotsKey, setLoadedSlotsKey] = useState<string | null>(null);
@@ -238,18 +261,36 @@ export function BookingWizard(props: WizardProps) {
     if (!zone || !duration || !slot) return;
     setError(null);
     startTransition(async () => {
-      const r = await checkoutAction({
+      const common = {
         address: { ...address, line2: address.line2 || undefined, accessNotes: address.accessNotes || undefined },
         saveAsHome,
         durationMinutes: duration,
-        childIds,
         instructorId,
         plan,
         start: slot.start,
         promoCode: promo || undefined,
         paymentMethod: payWith,
         autoRenew: plan.kind === "package" && payWith === "card" ? autoRenew : false,
-      });
+      };
+      if (props.guest) {
+        const g = await guestCheckoutAction({
+          ...common,
+          swimmers: selectedKids.map((c) => ({ firstName: c.firstName, birthDate: c.birthDate ?? "", swimLevel: c.swimLevel, notes: c.notes })),
+          contact: { ...contact, phone: contact.phone.trim() || undefined },
+        });
+        if (!g.ok) {
+          setError(g.error);
+          if (/taken|unavailable/i.test(g.error)) {
+            setSlot(null);
+            setStep(4);
+          }
+          return;
+        }
+        if (g.data.kind === "sign_in") return setSignInSentTo(g.data.email);
+        window.location.href = g.data.url;
+        return;
+      }
+      const r = await checkoutAction({ ...common, childIds });
       if (!r.ok) {
         setError(r.error);
         if (/taken|unavailable/i.test(r.error)) {
@@ -307,6 +348,15 @@ export function BookingWizard(props: WizardProps) {
   return (
     <div className="mx-auto max-w-3xl pb-28 lg:max-w-6xl lg:pb-0">
       <div className="mb-6 space-y-3">
+        {props.guest && step === 0 && (
+          <p className="text-sm text-stone-600">
+            Booked with us before?{" "}
+            <Link href="/login?next=/book" className="font-medium text-brand-700 underline">
+              Sign in
+            </Link>{" "}
+            to use your saved swimmers and address. New here? Just start below. No account needed until you pay.
+          </p>
+        )}
         <LaneProgress steps={STEPS} current={step} onJump={jump} />
         <div className="lg:hidden">
           <PassChips items={pass} current={step} onJump={jump} />
@@ -662,12 +712,37 @@ export function BookingWizard(props: WizardProps) {
               </span>
             </label>
           )}
+          {props.guest && (
+            <div className="card space-y-4">
+              <div>
+                <p className="font-semibold text-stone-900">Your details</p>
+                <p className="mt-1 text-sm text-stone-600">We&apos;ll create your account with this so you can manage the lesson. No password needed: you sign in with a link we email you.</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input className="input" placeholder="First name" autoComplete="given-name" value={contact.firstName} onChange={(e) => setContact({ ...contact, firstName: e.target.value })} />
+                <input className="input" placeholder="Last name" autoComplete="family-name" value={contact.lastName} onChange={(e) => setContact({ ...contact, lastName: e.target.value })} />
+                <input className="input" type="email" placeholder="Email" autoComplete="email" value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} />
+                <input className="input" type="tel" placeholder="Mobile (optional)" autoComplete="tel" value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} />
+              </div>
+              {contact.phone.trim() && (
+                <label className="flex items-center gap-2 text-sm text-stone-600">
+                  <input type="checkbox" checked={contact.smsOptIn} onChange={(e) => setContact({ ...contact, smsOptIn: e.target.checked })} /> Text me lesson reminders
+                </label>
+              )}
+            </div>
+          )}
+          {signInSentTo && (
+            <p className="rounded-2xl bg-brand-50 p-4 text-sm text-brand-900" role="status">
+              <strong>{signInSentTo}</strong> already has an account. We emailed a sign-in link: open it, then book from your account (your swimmers and address will be saved
+              there).
+            </p>
+          )}
           <Actions
             onBack={back}
             primary={
               pending ? "One moment…" : quote?.totalCents === 0 ? "Confirm booking" : payWith === "hsa_fsa" && props.hsaFsaAvailable ? "Continue to HSA/FSA checkout" : quote ? `Pay ${money(quote.totalCents)}` : "Pay"
             }
-            disabled={pending || !quote}
+            disabled={pending || !quote || !contactReady || Boolean(signInSentTo)}
             onPrimary={pay}
             note={payWith === "hsa_fsa" && props.hsaFsaAvailable ? "HSA/FSA checkout by Truemed" : "Secure checkout by Stripe"}
           />

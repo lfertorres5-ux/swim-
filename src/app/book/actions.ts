@@ -1,7 +1,9 @@
 "use server";
 
 import { z } from "zod";
-import { requireRole } from "@/lib/auth";
+import { getCurrentUser, requireRole } from "@/lib/auth";
+import { clientKey } from "@/lib/client-key";
+import { guestCheckout, guestCheckoutSchema } from "@/lib/booking/guest";
 import { addressInputSchema, verifyAddress, type AddressCheck } from "@/lib/booking/address";
 import { BookingError, checkoutInputSchema, createBookingCheckout, planSchema } from "@/lib/booking/checkout";
 import { loadInstructorCards, type InstructorCardData } from "@/lib/instructor-cards";
@@ -22,8 +24,11 @@ function messageOf(err: unknown): string {
   return "Something went wrong. Please try again.";
 }
 
+// Address, instructor, time and price steps work without an account (guest
+// booking); the account is created at checkout. Only checkout and saving a
+// swimmer write anything.
+
 export async function checkAddressAction(raw: unknown): Promise<AddressCheck> {
-  await requireRole("parent");
   const parsed = addressInputSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, reason: "not_found", message: parsed.error.issues[0].message };
   return verifyAddress(parsed.data);
@@ -51,28 +56,39 @@ export async function addChildAction(raw: unknown): Promise<Result<{ id: string;
   return { ok: true, data: { id: data.id, firstName: data.first_name, birthDate: data.birth_date, swimLevel: data.swim_level } };
 }
 
-/** Swimmers for the engine, computed from the family's own children rows (RLS). */
-async function swimmersFor(childIds: string[], onDate: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.from("children").select("id, birth_date, swim_level").in("id", childIds).eq("is_active", true);
-  if (!data || data.length !== new Set(childIds).size) throw new BookingError("invalid_swimmers", "Please choose your swimmers again.");
-  return data.map((c) => ({ ageMonths: c.birth_date ? ageInMonths(c.birth_date, onDate) : null, level: c.swim_level as SwimLevel }));
+/**
+ * Swimmers for the engine: a signed-in family's own children rows (RLS), or a
+ * guest's swimmers as typed (age and level only; nothing is saved).
+ */
+async function swimmersFor(who: { childIds?: string[]; swimmers?: { birthDate: string; swimLevel: SwimLevel }[] }, onDate: string) {
+  if (who.childIds?.length) {
+    const supabase = await createClient();
+    const { data } = await supabase.from("children").select("id, birth_date, swim_level").in("id", who.childIds).eq("is_active", true);
+    if (!data || data.length !== new Set(who.childIds).size) throw new BookingError("invalid_swimmers", "Please choose your swimmers again.");
+    return data.map((c) => ({ ageMonths: c.birth_date ? ageInMonths(c.birth_date, onDate) : null, level: c.swim_level as SwimLevel }));
+  }
+  if (!who.swimmers?.length) throw new BookingError("invalid_swimmers", "Please choose your swimmers again.");
+  return who.swimmers.map((s) => ({ ageMonths: ageInMonths(s.birthDate, onDate), level: s.swimLevel }));
 }
 
 const searchSchema = z.object({
   zoneId: z.guid(),
   durationMinutes: z.number().int().positive(),
-  childIds: z.array(z.guid()).min(1).max(10),
+  childIds: z.array(z.guid()).min(1).max(10).optional(),
+  swimmers: z
+    .array(z.object({ birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), swimLevel: z.enum(SWIM_LEVELS) }))
+    .min(1)
+    .max(10)
+    .optional(),
 });
 
 export async function eligibleInstructorsAction(raw: unknown): Promise<Result<InstructorCardData[]>> {
-  await requireRole("parent");
   const parsed = searchSchema.safeParse(raw);
   if (!parsed.success) return fail("Invalid request");
   try {
     const today = laDateString();
-    const swimmers = await swimmersFor(parsed.data.childIds, today);
-    const result = await getAvailability({ ...parsed.data, swimmers, fromDate: today, toDate: addDays(today, 21) });
+    const swimmers = await swimmersFor(parsed.data, today);
+    const result = await getAvailability({ zoneId: parsed.data.zoneId, durationMinutes: parsed.data.durationMinutes, swimmers, fromDate: today, toDate: addDays(today, 21) });
     return { ok: true, data: await loadInstructorCards(result.eligibleInstructorIds) };
   } catch (err) {
     return fail(messageOf(err));
@@ -91,16 +107,16 @@ const slotsSchema = searchSchema.extend({
 });
 
 export async function slotsAction(raw: unknown): Promise<Result<{ slots: SlotView[]; suggested: string[] }>> {
-  const user = await requireRole("parent");
+  const user = await getCurrentUser();
   const parsed = slotsSchema.safeParse(raw);
   if (!parsed.success) return fail("Invalid request");
   const p = parsed.data;
   try {
     const toDate = addDays(p.fromDate, p.days - 1);
     if (daysBetween(laDateString(), toDate) > 120) return { ok: true, data: { slots: [], suggested: [] } };
-    const swimmers = await swimmersFor(p.childIds, p.fromDate);
+    const swimmers = await swimmersFor(p, p.fromDate);
     const supabase = await createClient();
-    const { data: parent } = await supabase.from("parents").select("favorite_instructor_id").eq("id", user.id).single();
+    const { data: parent } = user?.role === "parent" ? await supabase.from("parents").select("favorite_instructor_id").eq("id", user.id).single() : { data: null };
     const req = {
       zoneId: p.zoneId,
       durationMinutes: p.durationMinutes,
@@ -144,7 +160,6 @@ const quoteSchema = z.object({
 
 /** Display quote. The real charge is recomputed in createBookingCheckout. */
 export async function quoteAction(raw: unknown): Promise<Result<Quote & { promoMessage?: string }>> {
-  await requireRole("parent");
   const parsed = quoteSchema.safeParse(raw);
   if (!parsed.success) return fail("Invalid request");
   const q = parsed.data;
@@ -196,6 +211,17 @@ export async function checkoutAction(raw: unknown): Promise<Result<{ url: string
   try {
     const result = await createBookingCheckout(user.id, parsed.data);
     return { ok: true, data: { url: result.url } };
+  } catch (err) {
+    return fail(messageOf(err));
+  }
+}
+
+/** Checkout without an account: creates it (or asks an existing account to sign in), then pays. */
+export async function guestCheckoutAction(raw: unknown): Promise<Result<{ kind: "redirect" | "confirmed"; url: string } | { kind: "sign_in"; email: string }>> {
+  const parsed = guestCheckoutSchema.safeParse(raw);
+  if (!parsed.success) return fail(parsed.error.issues[0].message);
+  try {
+    return { ok: true, data: await guestCheckout(parsed.data, await clientKey("guest-checkout")) };
   } catch (err) {
     return fail(messageOf(err));
   }

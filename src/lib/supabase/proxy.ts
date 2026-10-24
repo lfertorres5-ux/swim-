@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED_PREFIXES = ["/parent", "/instructor", "/admin", "/onboarding", "/dashboard", "/book", "/dev"];
+// "/book" itself is public (guest booking; the account is created at checkout); its sub-pages aren't.
+const PROTECTED_PREFIXES = ["/parent", "/instructor", "/admin", "/onboarding", "/dashboard", "/book/cancelled", "/dev"];
 
 /**
  * Refreshes the Supabase session cookie on every request and performs an
