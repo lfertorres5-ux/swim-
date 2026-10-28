@@ -22,8 +22,9 @@ export function ProfileForm({ defaults }: { defaults: { firstName: string; lastN
         <input name="phone" type="tel" defaultValue={defaults.phone} autoComplete="tel" placeholder="(619) 555-0123" className="input" />
       </label>
       <label className="flex items-start gap-2 text-sm text-stone-600">
-        <input name="smsOptIn" type="checkbox" defaultChecked className="mt-1" />
-        Text me booking confirmations and reminders. Msg &amp; data rates may apply. Reply STOP to opt out.
+        <input name="smsOptIn" type="checkbox" className="mt-1" />
+        Text me booking confirmations and lesson reminders (about 2–4 messages per lesson). Consent isn&apos;t required to book. Msg &amp; data rates may apply. Reply
+        STOP to opt out, HELP for help.
       </label>
       <p className="text-xs text-stone-500">
         Your phone number and email are never shared with instructors. Calls and texts with your instructor go through a

@@ -29,15 +29,20 @@
   --color-brand-900: #1b3e42;
   --color-brand-950: #0c2527;
 
-  /* Coral — warm accents (badges, highlights) */
-  --color-coral: #ec7550;
+  /* Coral — warm accents (badges, highlights). 500 and up pass WCAG AA
+     (4.5:1) for white text on coral and coral text on white or sand. */
+  --color-coral: #b94a2a;
   --color-coral-50: #fff5f1;
   --color-coral-100: #ffe5db;
   --color-coral-200: #ffc8b4;
-  --color-coral-400: #f5936f;
-  --color-coral-500: #ec7550;
-  --color-coral-600: #d65b37;
-  --color-coral-700: #b2462a;
+  --color-coral-400: #e0714c; /* decorative only (shapes, dots), never text */
+  --color-coral-500: #b94a2a;
+  --color-coral-600: #a3401f;
+  --color-coral-700: #8f3719;
+
+  /* Light grays darkened one step so hint and placeholder text passes AA. */
+  --color-stone-400: #78716c;
+  --color-stone-500: #6b6560;
 
   /* Warm page background */
   --color-sand: #faf6ef;

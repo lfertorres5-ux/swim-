@@ -22,7 +22,7 @@ export default async function BookPage({ searchParams }: PageProps<"/book">) {
 
   const [{ data: prices }, { data: offerings }, { data: pricing }, { data: settings }, { data: children }, { data: parent }, { data: packages }] = await Promise.all([
     supabase.from("lesson_prices").select("duration_minutes, price_cents").eq("is_active", true).order("sort_order"),
-    supabase.from("package_offerings").select("id, name, lesson_count, discount_pct").eq("is_active", true).order("sort_order"),
+    supabase.from("package_offerings").select("id, name, lesson_count, discount_pct, validity_days").eq("is_active", true).order("sort_order"),
     supabase.from("pricing_config").select("*").single(),
     supabase.from("platform_settings").select("cancellation_window_hours, booking_request_window_hours, recurring_term_weeks").single(),
     user ? supabase.from("children").select("id, first_name, birth_date, swim_level").eq("is_active", true).order("first_name") : { data: null },
@@ -50,7 +50,7 @@ export default async function BookPage({ searchParams }: PageProps<"/book">) {
       <main className="w-full flex-1 px-6 py-8">
         <BookingWizard
           prices={(prices ?? []).map((p) => ({ durationMinutes: p.duration_minutes, priceCents: p.price_cents }))}
-          offerings={(offerings ?? []).map((o) => ({ id: o.id, name: o.name, lessonCount: o.lesson_count, discountPct: Number(o.discount_pct) }))}
+          offerings={(offerings ?? []).map((o) => ({ id: o.id, name: o.name, lessonCount: o.lesson_count, discountPct: Number(o.discount_pct), validityDays: o.validity_days }))}
           recurringTermWeeks={[]} // weekly plans aren't offered; families book single lessons or packages
           recurringDiscountPct={Number(pricing?.recurring_discount_pct ?? 0)}
           includedChildren={pricing?.included_children ?? 2}

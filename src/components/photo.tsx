@@ -3,7 +3,7 @@ import type { PhotoSlot } from "@/content/photos";
 
 /**
  * A photo slot. With no photo yet, draws sunlit pool water so the layout
- * looks intentional instead of empty.
+ * looks intentional instead of empty (decorative, so screen readers skip it).
  */
 export function Photo({ photo, className = "", sizes = "(min-width: 1024px) 40vw, 90vw", priority = false, tone = "day" }: { photo: PhotoSlot; className?: string; sizes?: string; priority?: boolean; tone?: "day" | "dusk" }) {
   if (photo.src) {
@@ -15,7 +15,8 @@ export function Photo({ photo, className = "", sizes = "(min-width: 1024px) 40vw
   }
   const [a, b, c] = tone === "day" ? ["#9fdbe0", "#3fa7b4", "#17707f"] : ["#ffd6c2", "#5fb4bd", "#1d5f6b"];
   return (
-    <div className={`relative overflow-hidden ${className}`} role="img" aria-label={photo.alt}>
+    // Decorative stand-in: hidden from screen readers so it isn't described as a real photo.
+    <div className={`relative overflow-hidden ${className}`} aria-hidden>
       <svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full">
         <defs>
           <linearGradient id={`w-${tone}`} x1="0" y1="0" x2="0" y2="1">

@@ -62,7 +62,13 @@ export async function notifyBookingReceived(bookingIds: string[]) {
   const contexts = await Promise.all(bookingIds.map(lessonContext));
   const parent = await person(contexts[0].booking.parent_id);
   if (!parent) return;
-  await enqueue(parent, "parent.booking_received", t.bookingReceived({ parentFirstName: parent.firstName, lessons: contexts.map((c) => c.lesson), url: `${siteUrl()}/parent` }), {
+  const packageId = contexts[0].booking.package_id as string | null;
+  let pkg: t.PurchasedPackage | null = null;
+  if (packageId) {
+    const { data } = await createAdminClient().from("packages").select("lesson_count, expires_at, auto_renew, renewal_amount_cents, total_cents").eq("id", packageId).maybeSingle();
+    if (data) pkg = { lessonCount: data.lesson_count, expiresAt: data.expires_at, autoRenewAmountCents: data.auto_renew ? (data.renewal_amount_cents ?? data.total_cents) : null, manageUrl: `${siteUrl()}/parent#packages` };
+  }
+  await enqueue(parent, "parent.booking_received", t.bookingReceived({ parentFirstName: parent.firstName, lessons: contexts.map((c) => c.lesson), url: `${siteUrl()}/parent`, pkg }), {
     bookingId: bookingIds[0],
     dedupeKey: `received:${bookingIds[0]}`,
   });

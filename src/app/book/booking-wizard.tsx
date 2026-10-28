@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { InstructorCard } from "@/components/instructor-card";
+import { TERMS_VERSION } from "@/content/legal";
 import type { InstructorCardData } from "@/lib/instructor-cards";
 import type { Quote } from "@/lib/pricing/quote";
 import { AddressAutocomplete } from "./address-autocomplete";
@@ -12,7 +13,7 @@ import { LaneProgress, PassChips, Picked, SwimPass, type PassItem } from "./wiza
 
 export type WizardProps = {
   prices: { durationMinutes: number; priceCents: number }[];
-  offerings: { id: string; name: string; lessonCount: number; discountPct: number }[];
+  offerings: { id: string; name: string; lessonCount: number; discountPct: number; validityDays: number }[];
   recurringTermWeeks: number[];
   recurringDiscountPct: number;
   includedChildren: number;
@@ -117,6 +118,8 @@ export function BookingWizard(props: WizardProps) {
   // Guests: who's booking (becomes their account at checkout).
   const [contact, setContact] = useState({ firstName: "", lastName: "", email: "", phone: "", smsOptIn: false });
   const [signInSentTo, setSignInSentTo] = useState<string | null>(null);
+  // Terms of Service + liability waiver: required, never pre-ticked.
+  const [agreed, setAgreed] = useState(false);
   const contactReady = !props.guest || (contact.firstName.trim() && contact.lastName.trim() && /^\S+@\S+\.\S+$/.test(contact.email.trim()));
 
   // Guests' swimmers aren't saved yet, so searches send age and level instead of ids.
@@ -271,6 +274,7 @@ export function BookingWizard(props: WizardProps) {
         promoCode: promo || undefined,
         paymentMethod: payWith,
         autoRenew: plan.kind === "package" && payWith === "card" ? autoRenew : false,
+        acceptedTermsVersion: agreed ? TERMS_VERSION : undefined,
       };
       if (props.guest) {
         const g = await guestCheckoutAction({
@@ -390,10 +394,10 @@ export function BookingWizard(props: WizardProps) {
               </>
             ) : (
               <div className="grid gap-3 sm:grid-cols-6">
-                <input className="input sm:col-span-4" placeholder="Street address" autoComplete="address-line1" value={address.line1} onChange={(e) => setAddress({ ...address, line1: e.target.value, placeId: undefined })} />
-                <input className="input sm:col-span-2" placeholder="Apt / unit" autoComplete="address-line2" value={address.line2} onChange={(e) => setAddress({ ...address, line2: e.target.value })} />
-                <input className="input sm:col-span-4" placeholder="City" autoComplete="address-level2" value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value, placeId: undefined })} />
-                <input className="input sm:col-span-2" placeholder="ZIP" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={address.postalCode} onChange={(e) => setAddress({ ...address, postalCode: e.target.value, placeId: undefined })} />
+                <input className="input sm:col-span-4" placeholder="Street address" aria-label="Street address" autoComplete="address-line1" value={address.line1} onChange={(e) => setAddress({ ...address, line1: e.target.value, placeId: undefined })} />
+                <input className="input sm:col-span-2" placeholder="Apt / unit" aria-label="Apartment or unit (optional)" autoComplete="address-line2" value={address.line2} onChange={(e) => setAddress({ ...address, line2: e.target.value })} />
+                <input className="input sm:col-span-4" placeholder="City" aria-label="City" autoComplete="address-level2" value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value, placeId: undefined })} />
+                <input className="input sm:col-span-2" placeholder="ZIP" aria-label="ZIP code" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={address.postalCode} onChange={(e) => setAddress({ ...address, postalCode: e.target.value, placeId: undefined })} />
               </div>
             )}
             <label className="block text-sm text-stone-700">
@@ -437,7 +441,7 @@ export function BookingWizard(props: WizardProps) {
           </div>
           {showAddChild ? (
             <div className="card grid gap-3 sm:grid-cols-2">
-              <input className="input" placeholder="First name" value={newChild.firstName} onChange={(e) => setNewChild({ ...newChild, firstName: e.target.value })} />
+              <input className="input" placeholder="First name" aria-label="Swimmer's first name" value={newChild.firstName} onChange={(e) => setNewChild({ ...newChild, firstName: e.target.value })} />
               <label className="text-sm text-stone-500">
                 Birthday
                 <input type="date" className="input mt-1" max={props.today} value={newChild.birthDate} onChange={(e) => setNewChild({ ...newChild, birthDate: e.target.value })} />
@@ -449,7 +453,7 @@ export function BookingWizard(props: WizardProps) {
                   </option>
                 ))}
               </select>
-              <input className="input" placeholder="Anything the instructor should know?" value={newChild.notes} onChange={(e) => setNewChild({ ...newChild, notes: e.target.value })} />
+              <input className="input" placeholder="Anything the instructor should know?" aria-label="Notes for the instructor (optional)" value={newChild.notes} onChange={(e) => setNewChild({ ...newChild, notes: e.target.value })} />
               <button className="btn-secondary sm:w-fit" disabled={pending} onClick={addChild}>
                 Add
               </button>
@@ -525,7 +529,7 @@ export function BookingWizard(props: WizardProps) {
                 title={`${o.lessonCount} lessons`}
                 tag={`Save ${o.discountPct}%`}
                 quote={planQuotes[`package:${o.id}`]}
-                note="Book the rest whenever you like"
+                note={`Use all ${o.lessonCount} lessons within ${o.validityDays} days of purchase. Unused lessons expire.`}
               />
             ))}
             {props.recurringTermWeeks.map((w) => (
@@ -663,7 +667,7 @@ export function BookingWizard(props: WizardProps) {
                 <details className="text-sm">
                   <summary className="cursor-pointer text-stone-500">Have a promo code?</summary>
                   <div className="mt-2 flex gap-2">
-                    <input className="input" placeholder="Code" value={promo} onChange={(e) => setPromo(e.target.value.toUpperCase())} />
+                    <input className="input" placeholder="Code" aria-label="Promo code" value={promo} onChange={(e) => setPromo(e.target.value.toUpperCase())} />
                     <button className="btn-secondary" disabled={pending || !promo} onClick={refreshQuote}>
                       Apply
                     </button>
@@ -719,18 +723,36 @@ export function BookingWizard(props: WizardProps) {
                 <p className="mt-1 text-sm text-stone-600">We&apos;ll create your account with this so you can manage the lesson. No password needed: you sign in with a link we email you.</p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <input className="input" placeholder="First name" autoComplete="given-name" value={contact.firstName} onChange={(e) => setContact({ ...contact, firstName: e.target.value })} />
-                <input className="input" placeholder="Last name" autoComplete="family-name" value={contact.lastName} onChange={(e) => setContact({ ...contact, lastName: e.target.value })} />
-                <input className="input" type="email" placeholder="Email" autoComplete="email" value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} />
-                <input className="input" type="tel" placeholder="Mobile (optional)" autoComplete="tel" value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} />
+                <input className="input" placeholder="First name" aria-label="Your first name" autoComplete="given-name" value={contact.firstName} onChange={(e) => setContact({ ...contact, firstName: e.target.value })} />
+                <input className="input" placeholder="Last name" aria-label="Your last name" autoComplete="family-name" value={contact.lastName} onChange={(e) => setContact({ ...contact, lastName: e.target.value })} />
+                <input className="input" type="email" placeholder="Email" aria-label="Your email" autoComplete="email" value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} />
+                <input className="input" type="tel" placeholder="Mobile (optional)" aria-label="Mobile phone (optional)" autoComplete="tel" value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} />
               </div>
               {contact.phone.trim() && (
-                <label className="flex items-center gap-2 text-sm text-stone-600">
-                  <input type="checkbox" checked={contact.smsOptIn} onChange={(e) => setContact({ ...contact, smsOptIn: e.target.checked })} /> Text me lesson reminders
+                <label className="flex items-start gap-2 text-sm text-stone-600">
+                  <input type="checkbox" className="mt-1" checked={contact.smsOptIn} onChange={(e) => setContact({ ...contact, smsOptIn: e.target.checked })} />
+                  <span>
+                    Text me booking confirmations and lesson reminders (about 2–4 messages per lesson). Consent isn&apos;t required to book. Msg &amp; data rates may apply.
+                    Reply STOP to opt out, HELP for help.
+                  </span>
                 </label>
               )}
             </div>
           )}
+          <label className="card flex cursor-pointer items-start gap-3 text-sm text-stone-700">
+            <input type="checkbox" className="mt-1 h-4 w-4 shrink-0" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+            <span>
+              I&apos;m the parent or legal guardian of each swimmer, and I agree to the{" "}
+              <Link href="/terms" target="_blank" className="font-medium text-brand-700 underline">
+                Terms of Service, including the assumption of risk and liability waiver
+              </Link>{" "}
+              and the{" "}
+              <Link href="/privacy" target="_blank" className="font-medium text-brand-700 underline">
+                Privacy Policy
+              </Link>
+              .
+            </span>
+          </label>
           {signInSentTo && (
             <p className="rounded-2xl bg-brand-50 p-4 text-sm text-brand-900" role="status">
               <strong>{signInSentTo}</strong> already has an account. We emailed a sign-in link: open it, then book from your account (your swimmers and address will be saved
@@ -742,7 +764,7 @@ export function BookingWizard(props: WizardProps) {
             primary={
               pending ? "One moment…" : quote?.totalCents === 0 ? "Confirm booking" : payWith === "hsa_fsa" && props.hsaFsaAvailable ? "Continue to HSA/FSA checkout" : quote ? `Pay ${money(quote.totalCents)}` : "Pay"
             }
-            disabled={pending || !quote || !contactReady || Boolean(signInSentTo)}
+            disabled={pending || !quote || !contactReady || !agreed || Boolean(signInSentTo)}
             onPrimary={pay}
             note={payWith === "hsa_fsa" && props.hsaFsaAvailable ? "HSA/FSA checkout by Truemed" : "Secure checkout by Stripe"}
           />

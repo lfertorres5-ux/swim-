@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { getCurrentUser, requireRole } from "@/lib/auth";
 import { clientKey } from "@/lib/client-key";
+import { TERMS_VERSION } from "@/content/legal";
 import { guestCheckout, guestCheckoutSchema } from "@/lib/booking/guest";
 import { addressInputSchema, verifyAddress, type AddressCheck } from "@/lib/booking/address";
 import { BookingError, checkoutInputSchema, createBookingCheckout, planSchema } from "@/lib/booking/checkout";
@@ -204,10 +205,13 @@ export async function quoteAction(raw: unknown): Promise<Result<Quote & { promoM
   }
 }
 
+const TERMS_REQUIRED = "Please agree to the Terms of Service and liability waiver to book.";
+
 export async function checkoutAction(raw: unknown): Promise<Result<{ url: string }>> {
   const user = await requireRole("parent");
   const parsed = checkoutInputSchema.safeParse(raw);
   if (!parsed.success) return fail("Please review your booking details.");
+  if (parsed.data.acceptedTermsVersion !== TERMS_VERSION) return fail(TERMS_REQUIRED);
   try {
     const result = await createBookingCheckout(user.id, parsed.data);
     return { ok: true, data: { url: result.url } };
@@ -220,6 +224,7 @@ export async function checkoutAction(raw: unknown): Promise<Result<{ url: string
 export async function guestCheckoutAction(raw: unknown): Promise<Result<{ kind: "redirect" | "confirmed"; url: string } | { kind: "sign_in"; email: string }>> {
   const parsed = guestCheckoutSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error.issues[0].message);
+  if (parsed.data.acceptedTermsVersion !== TERMS_VERSION) return fail(TERMS_REQUIRED);
   try {
     return { ok: true, data: await guestCheckout(parsed.data, await clientKey("guest-checkout")) };
   } catch (err) {

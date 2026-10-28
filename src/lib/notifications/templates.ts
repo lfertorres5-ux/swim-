@@ -48,15 +48,29 @@ function build(subject: string, heading: string, lines: string[], cta: { label: 
 
 // --- Parents -----------------------------------------------------------------
 
-export function bookingReceived(p: { parentFirstName: string | null; lessons: LessonInfo[]; url: string }): Rendered {
+/** Package details for the purchase confirmation (expiry, and auto-renew terms as California's auto-renewal law requires). */
+export type PurchasedPackage = { lessonCount: number; expiresAt: string | null; autoRenewAmountCents: number | null; manageUrl: string };
+
+export function bookingReceived(p: { parentFirstName: string | null; lessons: LessonInfo[]; url: string; pkg?: PurchasedPackage | null }): Rendered {
   const first = p.lessons[0];
   const more = p.lessons.length > 1 ? ` (and ${p.lessons.length - 1} more)` : "";
+  const pkgLines = p.pkg
+    ? [
+        `Your ${p.pkg.lessonCount}-lesson package${p.pkg.expiresAt ? `: use all lessons by ${formatDate(p.pkg.expiresAt, { month: "long", day: "numeric", year: "numeric" })}. Unused lessons expire.` : "."}`,
+        ...(p.pkg.autoRenewAmountCents
+          ? [
+              `Auto-renew is on. Once you've booked the last lesson in this package, we'll renew the same ${p.pkg.lessonCount}-lesson package for ${money(p.pkg.autoRenewAmountCents)}, charged to the card you used after that lesson, and it repeats until you turn it off. We'll email you at least 3 days before every renewal. To cancel, turn off auto-renew any time at ${p.pkg.manageUrl}.`,
+            ]
+          : []),
+      ]
+    : [];
   return build(
     `We got your booking for ${whenShort(first)}`,
     `Thanks${p.parentFirstName ? `, ${p.parentFirstName}` : ""}! You're all paid.`,
     [
       `${kids(first.swimmers)}'s ${first.durationMinutes}-minute lesson on ${when(first)}${more} is booked.`,
-      "We've asked your instructor to confirm — you'll hear from us as soon as they do, usually within a few hours.",
+      "We've asked your instructor to confirm. You'll hear from us as soon as they do, usually within a few hours.",
+      ...pkgLines,
     ],
     { label: "See your lessons", url: p.url },
     null,

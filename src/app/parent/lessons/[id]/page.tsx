@@ -106,7 +106,7 @@ export default async function LessonDetail({ params, searchParams }: PageProps<"
                       ? "Cancelling now is free."
                       : `Cancellations within ${preview.policy.cancellationWindowHours} hours of the lesson aren't refunded.`}
               </p>
-              <input name="reason" placeholder="Reason (optional)" maxLength={500} className="input" />
+              <input name="reason" placeholder="Reason (optional)" aria-label="Reason for cancelling (optional)" maxLength={500} className="input" />
               <button className="btn-secondary text-red-700">Cancel lesson</button>
             </form>
           </div>

@@ -20,7 +20,7 @@ export default async function Home() {
     supabase.from("lesson_prices").select("duration_minutes, price_cents").eq("is_active", true).order("sort_order"),
     supabase.from("zones").select("code, name, travel_fee_cents, min_booking_minutes, neighborhoods, postal_codes, map_color").eq("is_bookable", true).order("sort_order"),
     supabase.from("pricing_config").select("*").single(),
-    supabase.from("package_offerings").select("name, lesson_count, discount_pct").eq("is_active", true).order("sort_order"),
+    supabase.from("package_offerings").select("name, lesson_count, discount_pct, validity_days").eq("is_active", true).order("sort_order"),
     supabase.from("platform_settings").select("cancellation_window_hours").single(),
     loadInstructorCards(),
   ]);
@@ -115,7 +115,7 @@ export default async function Home() {
               ["A note after every lesson", "Your instructor sends a short note on what your kids worked on and what comes next."],
             ].map(([title, text], i) => (
               <div key={title} className="relative bg-white p-6 pt-10">
-                <span className="absolute top-4 left-6 font-display text-sm font-semibold text-brand-500">Lane {i + 1}</span>
+                <span className="absolute top-4 left-6 font-display text-sm font-semibold text-brand-600">Lane {i + 1}</span>
                 <span aria-hidden className="absolute top-0 right-6 bottom-0 w-1.5 bg-[repeating-linear-gradient(to_bottom,var(--color-lane-blue)_0_10px,#fff_10px_20px)] opacity-60" />
                 <h3 className="h-card pr-8">{title}</h3>
                 <p className="mt-2 pr-8 text-stone-600">{text}</p>
@@ -219,7 +219,9 @@ export default async function Home() {
               <ul className="mt-4 space-y-2">
                 {(offerings ?? []).map((o) => (
                   <li key={o.name} className="flex items-center justify-between border-b border-dashed border-brand-600 pb-2">
-                    <span>{o.lesson_count} lessons</span>
+                    <span>
+                      {o.lesson_count} lessons <span className="text-sm text-brand-200">· use within {o.validity_days} days</span>
+                    </span>
                     <span className="rounded-full bg-coral-500 px-2.5 py-0.5 text-sm font-semibold text-white">{Number(o.discount_pct)}% off</span>
                   </li>
                 ))}

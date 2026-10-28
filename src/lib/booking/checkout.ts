@@ -34,6 +34,8 @@ export const checkoutInputSchema = z.object({
   paymentMethod: z.enum(["card", "hsa_fsa"]).optional(),
   /** Opt-in: renew the same package on the saved card once its last lesson is booked (card packages only). */
   autoRenew: z.boolean().optional(),
+  /** Terms of Service + liability waiver version the family ticked at checkout (required by the checkout actions). */
+  acceptedTermsVersion: z.string().max(20).optional(),
 });
 export type CheckoutInput = z.infer<typeof checkoutInputSchema>;
 
@@ -287,7 +289,14 @@ export async function createBookingCheckout(parentId: string, raw: CheckoutInput
     entity_type: "payment",
     entity_id: paymentId,
     booking_id: bookingIds[0],
-    metadata: { kind: input.plan.kind, booking_ids: bookingIds, total_cents: quote.totalCents, instructor_id: chosen.instructorId, auto_renew: autoRenew },
+    metadata: {
+      kind: input.plan.kind,
+      booking_ids: bookingIds,
+      total_cents: quote.totalCents,
+      instructor_id: chosen.instructorId,
+      auto_renew: autoRenew,
+      accepted_terms_version: input.acceptedTermsVersion ?? null,
+    },
   });
 
   // Nothing to pay (package credit or 100% promo): confirm right away.

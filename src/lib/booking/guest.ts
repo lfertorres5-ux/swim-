@@ -64,7 +64,14 @@ export async function guestCheckout(input: GuestCheckoutInput, clientKey: string
 
     if (clientKey) {
       const since = new Date(Date.now() - 86_400_000).toISOString();
-      const { count } = await admin.from("audit_log").select("id", { count: "exact", head: true }).eq("action", "guest.account_created").eq("metadata->>client_key", clientKey).gte("created_at", since);
+      const { count, error: countError } = await admin
+        .from("audit_log")
+        .select("id", { count: "exact", head: true })
+        .eq("action", "guest.account_created")
+        .eq("metadata->>client_key", clientKey)
+        .gte("occurred_at", since);
+      // Fail closed: if the limit can't be checked, don't create accounts.
+      if (countError) throw new Error(`guest rate-limit check failed: ${countError.message}`);
       if ((count ?? 0) >= MAX_GUEST_ACCOUNTS_PER_DAY) throw new BookingError("rate_limited", "Too many new accounts from this network today. Please sign in or try again tomorrow.");
     }
 
@@ -116,6 +123,7 @@ export async function guestCheckout(input: GuestCheckoutInput, clientKey: string
     promoCode: input.promoCode,
     paymentMethod: input.paymentMethod,
     autoRenew: input.autoRenew,
+    acceptedTermsVersion: input.acceptedTermsVersion,
   });
   return result.kind === "confirmed" ? { kind: "confirmed", url: result.url } : { kind: "redirect", url: result.url };
 }
