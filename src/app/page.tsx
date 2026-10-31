@@ -286,7 +286,7 @@ export default async function Home() {
             <div>
               <h2 className="h-section">Meet the instructors</h2>
               <p className="measure mt-4 text-stone-600">Pick a favorite when you book, or we&apos;ll match you with the instructor who fits your kids and schedule.</p>
-              <Photo photo={PHOTOS.toddler} className="pool-shape mt-6 hidden aspect-square w-full lg:block" sizes="280px" />
+              <Photo photo={PHOTOS.toddler} className="mt-6 aspect-square w-full max-w-sm rounded-3xl lg:max-w-none" sizes="(min-width: 1024px) 280px, 384px" />
             </div>
             <div className={`grid gap-4 ${shownInstructors.length > 1 ? "md:grid-cols-2" : ""}`}>
               {shownInstructors.map((i) => (

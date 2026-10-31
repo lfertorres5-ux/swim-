@@ -11,15 +11,15 @@ export type PhotoSlot = {
   src: string | null;
   alt: string;
   want: string;
-  credit: { name: string; source: "Unsplash" | "Pexels"; url: string } | null;
+  credit: { name: string; source: "Unsplash" | "Pexels" | "Instagram"; url: string } | null;
 };
 
 export const PHOTOS = {
   hero: {
-    src: "/photos/hero.jpg",
-    alt: "An instructor in the water beside a young swimmer kicking with a kickboard in a sunny outdoor pool",
+    src: "/photos/lesson-kick.jpg",
+    alt: "Our instructor in the water coaching a young swimmer's kick in a backyard pool",
     want: "Instructor in the water with one child, sunny backyard/residential pool, natural light, faces happy, portrait or 4:5 crop",
-    credit: null,
+    credit: { name: "@photosbyavalyn", source: "Instagram", url: "https://www.instagram.com/photosbyavalyn/" },
   },
   splash: {
     src: "/photos/splash.jpg",
@@ -28,10 +28,10 @@ export const PHOTOS = {
     credit: null,
   },
   toddler: {
-    src: "/photos/toddler.jpg",
-    alt: "A smiling baby swimming underwater",
+    src: "/photos/lesson-toddler.jpg",
+    alt: "Our instructor face to face with a toddler during a lesson in a backyard pool",
     want: "Parent or instructor holding a toddler in a pool, gentle and calm",
-    credit: null,
+    credit: { name: "@photosbyavalyn", source: "Instagram", url: "https://www.instagram.com/photosbyavalyn/" },
   },
   stroke: {
     src: "/photos/stroke.jpg",
@@ -49,4 +49,5 @@ export const PHOTOS = {
 
 export const PHOTO_CREDITS = Object.values(PHOTOS as Record<string, PhotoSlot>)
   .map((p) => p.credit)
-  .filter((c): c is NonNullable<PhotoSlot["credit"]> => Boolean(c));
+  .filter((c): c is NonNullable<PhotoSlot["credit"]> => Boolean(c))
+  .filter((c, i, all) => all.findIndex((x) => x.url === c.url) === i);
