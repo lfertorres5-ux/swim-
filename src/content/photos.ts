@@ -39,6 +39,12 @@ export const PHOTOS = {
     want: "One-on-one coaching with an established swimmer (16:9)",
     credit: null,
   },
+  freestyle: {
+    src: "/photos/freestyle-wide.jpg",
+    alt: "A young swimmer swimming freestyle between lane lines",
+    want: "Established swimmer mid-stroke, wide banner under the home hero (16:9 on phones, 21:9 on desktop)",
+    credit: null,
+  },
   instructor: {
     src: "/photos/instructor-shoulders.jpg",
     alt: "Our instructor smiling in the pool with a young swimmer on his shoulders",

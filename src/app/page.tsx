@@ -106,6 +106,19 @@ export default async function Home() {
 
       </div>
 
+      {/* Freestyle banner: from first float to fast freestyle */}
+      <section className="mx-auto w-full max-w-6xl px-5 pb-16 lg:pb-24">
+        <a href="#stroke" className="group relative block overflow-hidden rounded-3xl">
+          <Photo photo={PHOTOS.freestyle} className="aspect-[4/3] w-full transition duration-700 group-hover:scale-[1.02] sm:aspect-video lg:aspect-[21/9]" sizes="(min-width: 1152px) 1112px, 95vw" />
+          <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/10 via-45% to-transparent sm:bg-gradient-to-r sm:from-brand-950/70 sm:via-brand-950/15 sm:via-50%" />
+          <div className="absolute inset-x-0 bottom-0 p-5 sm:inset-y-0 sm:flex sm:max-w-md sm:flex-col sm:justify-center sm:p-10">
+            <p className="font-display text-xl leading-tight font-semibold text-white sm:text-4xl">From first float to fast freestyle.</p>
+            <p className="mt-2 hidden text-brand-100 sm:block">Beginners to swim team, taught one-on-one by former Division I and national-level swimmers.</p>
+            <span className="mt-3 inline-flex text-sm font-semibold text-white underline-offset-4 group-hover:underline sm:mt-5">See stroke lessons →</span>
+          </div>
+        </a>
+      </section>
+
       {/* Why us — three lanes */}
       <section className="bg-white">
         <TileBand />
