@@ -120,7 +120,7 @@ body {
  *   Spacing     4/8 px scale (Tailwind 1–24). Sections: .section = 64px top/bottom, 96px on desktop
  *   Radius      controls (buttons, chips) full · inputs 12px · small cards 16px · panels 24px
  *   Controls    44px tall (.btn-*, .input) · 48px for the one large CTA per section (.btn-lg)
- *   Media       4:5 feature photo · 1:1 insets and avatars · 16:9 banners, all object-cover
+ *   Media       1:1 feature photo, insets and avatars · 16:9 banners, all object-cover
  */
 @layer components {
   .section {
