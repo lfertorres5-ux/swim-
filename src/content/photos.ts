@@ -16,27 +16,33 @@ export type PhotoSlot = {
 
 export const PHOTOS = {
   hero: {
-    src: "/photos/lesson-toddler-hero.jpg",
-    alt: "Our instructor face to face with a toddler during a lesson in a backyard pool",
-    want: "Instructor in the water with one child, sunny backyard/residential pool, natural light, faces happy, portrait or 4:5 crop",
-    credit: { name: "@photosbyavalyn", source: "Instagram", url: "https://www.instagram.com/photosbyavalyn/" },
+    src: "/photos/lesson-jump.jpg",
+    alt: "A toddler leaping from the pool edge toward our instructor's outstretched arms in a backyard pool",
+    want: "Instructor and child mid-lesson, joyful, backyard pool (1:1)",
+    credit: null,
   },
   splash: {
     src: null,
-    alt: "A child in goggles and arm floats swimming underwater",
-    want: "Close-up of a kid (5–9) in goggles at the pool edge or mid-kick, bright and candid",
+    alt: "A child in goggles swimming underwater",
+    want: "Spare slot (unused)",
     credit: null,
   },
   toddler: {
-    src: "/photos/instructor-coaching.jpg",
-    alt: "Our instructor in the water coaching a young swimmer's kick in a backyard pool",
-    want: "Parent or instructor holding a toddler in a pool, gentle and calm",
-    credit: { name: "@photosbyavalyn", source: "Instagram", url: "https://www.instagram.com/photosbyavalyn/" },
+    src: "/photos/lesson-toddler-smile.jpg",
+    alt: "Our instructor holding a smiling toddler in the water during a lesson",
+    want: "Inset photo beside the main photo (1:1)",
+    credit: null,
   },
   stroke: {
-    src: "/photos/stroke.jpg",
-    alt: "A swimmer mid-stroke swimming freestyle between lane lines",
-    want: "Established swimmer doing freestyle in a lane (stroke technique section)",
+    src: "/photos/lesson-coaching.jpg",
+    alt: "Our instructor coaching an older swimmer at the side of a backyard pool",
+    want: "One-on-one coaching with an established swimmer (16:9)",
+    credit: null,
+  },
+  instructor: {
+    src: "/photos/instructor-shoulders.jpg",
+    alt: "Our instructor smiling in the pool with a young swimmer on his shoulders",
+    want: "The instructor, friendly and clearly visible (1:1, Meet the instructors)",
     credit: null,
   },
   club: {

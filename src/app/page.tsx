@@ -94,7 +94,7 @@ export default async function Home() {
 
         <div className="relative mx-auto w-full max-w-md lg:max-w-none">
           <Photo photo={PHOTOS.hero} priority className="pool-shape aspect-square w-full shadow-[0_30px_60px_-30px_rgba(15,94,115,0.55)]" />
-          <div className="absolute -bottom-6 -left-3 w-[42%] rotate-[-5deg] rounded-2xl bg-white p-2 pb-3 shadow-xl sm:-left-8">
+          <div className="absolute -top-6 -left-3 w-[38%] rotate-[-5deg] rounded-2xl bg-white p-2 pb-3 shadow-xl sm:-left-8">
             <Photo photo={PHOTOS.toddler} tone="dusk" className="aspect-square w-full rounded-xl" sizes="240px" />
             <p className="note mt-2 text-center text-sm">one-on-one, at your pool</p>
           </div>
@@ -286,6 +286,7 @@ export default async function Home() {
             <div>
               <h2 className="h-section">Meet the instructors</h2>
               <p className="measure mt-4 text-stone-600">Pick a favorite when you book, or we&apos;ll match you with the instructor who fits your kids and schedule.</p>
+              <Photo photo={PHOTOS.instructor} className="mt-6 aspect-square w-full max-w-sm rounded-3xl lg:max-w-none" sizes="(min-width: 1024px) 280px, 384px" />
             </div>
             <div className={`grid gap-4 ${shownInstructors.length > 1 ? "md:grid-cols-2" : ""}`}>
               {shownInstructors.map((i) => (
