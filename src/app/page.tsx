@@ -35,6 +35,7 @@ export default async function Home() {
     ["What do I need?", "A pool (yours, a neighbor's or your HOA's), ideally with steps or a shallow area so little swimmers can stand and get in safely, and warm water (around 82–86°F for young kids). We bring the kickboards and everything else."],
     ["We don't have a pool. Can we still take lessons?", "In some cases, yes: we can teach at one of our partner country club pools. Get in touch and we'll tell you what's possible for your family and schedule."],
     ["How young can my child start?", "Some of our instructors teach babies from 6 months, with a parent in the water."],
+    ["My child already swims. Is this for them?", "Yes. We also teach established swimmers who want to refine their strokes, breathing and turns, or get ready for swim team. When you book, choose the “Stroke technique” level and we'll match you with an instructor who coaches it."],
     ["Can siblings share a lesson?", `Yes. Each lesson includes up to ${included} kids, and each extra swimmer is ${extra}.`],
     ["Do packages renew automatically?", "Only if you choose to. When you buy a package you can tick “Auto-renew this package”: once you've booked its last lesson, we renew the same package at the regular price, charged to the same card after that lesson. We email you at least 3 days before every renewal, and you can turn it off any time from your account."],
     ["What if we need to cancel?", `You can cancel or reschedule from your account up to ${cancelHours} hours before your lesson at no charge. Within ${cancelHours} hours, the lesson isn't refunded, but please still let us know as soon as you can so your instructor isn't left waiting. If the weather turns, your instructor will reach out.`],
@@ -187,6 +188,37 @@ export default async function Home() {
               </li>
             ))}
           </ol>
+        </div>
+      </section>
+
+      {/* Stroke technique for established swimmers */}
+      <section id="stroke" className="bg-white">
+        <div className="section mx-auto grid max-w-6xl gap-10 px-5 lg:grid-cols-[1.2fr_1fr] lg:items-center">
+          <Photo photo={PHOTOS.stroke} className="aspect-video w-full rounded-3xl" sizes="(min-width: 1024px) 55vw, 95vw" />
+          <div>
+            <p className="text-sm font-semibold tracking-wide text-coral-600 uppercase">Already swimming?</p>
+            <h2 className="h-section mt-2">Sharpen your stroke with a D1 swimmer</h2>
+            <p className="measure mt-4 text-stone-600">
+              Lessons aren&apos;t just for beginners. Established swimmers, from swim-team kids to teens chasing faster times, get one-on-one technique work from a
+              former NCAA Division I or national-level competitor.
+            </p>
+            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+              {[
+                ["Stroke mechanics", "Freestyle, backstroke, breaststroke and butterfly, refined one detail at a time."],
+                ["Breathing and turns", "Bilateral breathing, flip turns, open turns and streamlines."],
+                ["Starts and racing", "Starts off the wall or block, pacing and finishing strong."],
+                ["Swim team prep", "Get ready for tryouts or move up a group with confidence."],
+              ].map(([title, text]) => (
+                <li key={title} className="rounded-2xl bg-sand p-4">
+                  <span className="block font-semibold text-stone-900">{title}</span>
+                  <span className="mt-1 block text-sm text-stone-600">{text}</span>
+                </li>
+              ))}
+            </ul>
+            <Link href="/book" className="btn-primary btn-lg mt-8">
+              Book a stroke lesson
+            </Link>
+          </div>
         </div>
       </section>
 

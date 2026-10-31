@@ -16,21 +16,27 @@ export type PhotoSlot = {
 
 export const PHOTOS = {
   hero: {
-    src: null,
-    alt: "An instructor in the water helping a young child float in a backyard pool",
+    src: "/photos/hero.jpg",
+    alt: "An instructor in the water beside a young swimmer kicking with a kickboard in a sunny outdoor pool",
     want: "Instructor in the water with one child, sunny backyard/residential pool, natural light, faces happy, portrait or 4:5 crop",
     credit: null,
   },
   splash: {
-    src: null,
-    alt: "A child in goggles smiling at the edge of a pool",
+    src: "/photos/splash.jpg",
+    alt: "A child in goggles and arm floats swimming underwater",
     want: "Close-up of a kid (5–9) in goggles at the pool edge or mid-kick, bright and candid",
     credit: null,
   },
   toddler: {
-    src: null,
-    alt: "A parent and toddler together in a warm pool",
+    src: "/photos/toddler.jpg",
+    alt: "A smiling baby swimming underwater",
     want: "Parent or instructor holding a toddler in a pool, gentle and calm",
+    credit: null,
+  },
+  stroke: {
+    src: "/photos/stroke.jpg",
+    alt: "A swimmer mid-stroke swimming freestyle between lane lines",
+    want: "Established swimmer doing freestyle in a lane (stroke technique section)",
     credit: null,
   },
   club: {
