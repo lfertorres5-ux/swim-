@@ -18,7 +18,7 @@ export default async function DayPassPage() {
 
   return (
     <main className="flex flex-1 flex-col">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4">
         <Link href="/" className="font-display text-lg font-semibold text-brand-800">
           {brand.name}
         </Link>

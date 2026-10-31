@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { InstructorCard } from "@/components/instructor-card";
 import { AreaSearch } from "@/components/landing/area-search";
+import { HeroVideo } from "@/components/landing/hero-video";
 import { ZipChecker } from "@/components/landing/zip-checker";
 import { brand } from "@/config/brand";
 import { PHOTOS } from "@/content/photos";
@@ -47,6 +48,8 @@ export default async function Home() {
 
   return (
     <main className="flex flex-1 flex-col">
+      <div className="relative isolate">
+        <HeroVideo />
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4">
         <span className="font-display text-lg font-semibold text-brand-800">{brand.name}</span>
         <nav className="flex items-center gap-5 text-sm">
@@ -94,16 +97,14 @@ export default async function Home() {
 
         <div className="relative mx-auto w-full max-w-md lg:max-w-none">
           <Photo photo={PHOTOS.hero} priority className="pool-shape aspect-square w-full shadow-[0_30px_60px_-30px_rgba(15,94,115,0.55)]" />
-          <div className="absolute -top-6 -left-3 w-[38%] rotate-[-5deg] rounded-2xl bg-white p-2 pb-3 shadow-xl sm:-left-8">
-            <Photo photo={PHOTOS.toddler} tone="dusk" className="aspect-square w-full rounded-xl" sizes="240px" />
-            <p className="note mt-2 text-center text-sm">one-on-one, at your pool</p>
-          </div>
           <div className="absolute -top-3 right-2 flex h-24 w-24 rotate-[10deg] flex-col items-center justify-center rounded-full bg-coral-500 text-center text-[11px] leading-tight font-semibold text-white uppercase shadow-lg sm:right-6">
             <span className="font-display text-2xl leading-none normal-case">1:1</span>
             or siblings
           </div>
         </div>
       </section>
+
+      </div>
 
       {/* Why us — three lanes */}
       <section className="bg-white">

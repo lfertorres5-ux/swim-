@@ -46,9 +46,9 @@ export const PHOTOS = {
     credit: null,
   },
   club: {
-    src: null,
-    alt: "A resort-style pool with lounge chairs and palm trees",
-    want: "Country club / resort pool deck with loungers and palms, no identifiable people (Day Pass page)",
+    src: "/photos/club-freestyle.jpg",
+    alt: "A swimmer swimming freestyle between lane lines in a sunny outdoor pool",
+    want: "Club pool scene for the Day Pass page banner (16:9)",
     credit: null,
   },
 } satisfies Record<string, PhotoSlot>;
